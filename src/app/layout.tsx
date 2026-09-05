@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import Navigation from "@/components/layout/Navigation";
 import Footer from "@/components/layout/Footer";
+import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: "Human Bridge — Career-to-Employment Platform",
@@ -15,7 +16,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const user = await getCurrentUser();
   return (
     <html lang="en">
       <head>
@@ -27,7 +29,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body className="bg-white text-slate-900 antialiased">
-        <Navigation />
+        <Navigation user={user} />
         {children}
         <Footer />
       </body>

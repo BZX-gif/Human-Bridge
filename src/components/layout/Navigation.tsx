@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
+import type { SessionUser } from "@/lib/auth/types";
 import {
   Menu,
   X,
@@ -16,6 +18,8 @@ import {
   Users,
   LayoutDashboard,
   LogIn,
+  LogOut,
+  UserPlus,
 } from "lucide-react";
 
 const mainNav = [
@@ -32,18 +36,34 @@ const forEmployers = [
   { label: "Find Talent", href: "/employers#talent" },
 ];
 
-export default function Navigation() {
+export default function Navigation({ user }: { user: SessionUser | null }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [employerOpen, setEmployerOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const dashboardHref = user?.role === "employer" ? "/employers/dashboard" : "/dashboard";
+
+  async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await apiFetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Cookie is cleared server-side even if the body fails; still leave.
+    }
+    setMobileOpen(false);
+    router.push("/");
+    router.refresh();
+    setLoggingOut(false);
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 bg-[#1a56ff] rounded-lg flex items-center justify-center shadow-sm">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-white">
@@ -57,7 +77,6 @@ export default function Navigation() {
             </span>
           </Link>
 
-          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
             {mainNav.map((item) => (
               <Link
@@ -74,7 +93,6 @@ export default function Navigation() {
               </Link>
             ))}
 
-            {/* Employers dropdown */}
             <div className="relative">
               <button
                 onClick={() => setEmployerOpen(!employerOpen)}
@@ -88,10 +106,7 @@ export default function Navigation() {
                 For Employers
                 <ChevronDown
                   size={14}
-                  className={cn(
-                    "transition-transform",
-                    employerOpen && "rotate-180"
-                  )}
+                  className={cn("transition-transform", employerOpen && "rotate-180")}
                 />
               </button>
               {employerOpen && (
@@ -111,51 +126,77 @@ export default function Navigation() {
             </div>
           </nav>
 
-          {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-2">
-            <Link
-              href="/dashboard"
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                isActive("/dashboard")
-                  ? "text-[#1a56ff] bg-[#e8edff]"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-              )}
-            >
-              <LayoutDashboard size={15} />
-              Dashboard
-            </Link>
-            <Link
-              href="/passport"
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                isActive("/passport")
-                  ? "text-[#1a56ff] bg-[#e8edff]"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-              )}
-            >
-              <Award size={15} />
-              Skill Passport
-            </Link>
-            <Link
-              href="/onboarding"
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#1a56ff] rounded-lg hover:bg-[#1040cc] transition-colors"
-            >
-              Get Started
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href={dashboardHref}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                    isActive("/dashboard") || isActive("/employers/dashboard")
+                      ? "text-[#1a56ff] bg-[#e8edff]"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  )}
+                >
+                  <LayoutDashboard size={15} />
+                  Dashboard
+                </Link>
+                {user.role !== "employer" && (
+                  <Link
+                    href="/passport"
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                      isActive("/passport")
+                        ? "text-[#1a56ff] bg-[#e8edff]"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    )}
+                  >
+                    <Award size={15} />
+                    Skill Passport
+                  </Link>
+                )}
+                <span className="hidden lg:inline px-2 text-sm text-slate-500 truncate max-w-[140px]" title={user.email}>
+                  {user.name.split(" ")[0]}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg disabled:opacity-60"
+                >
+                  <LogOut size={15} />
+                  {loggingOut ? "Signing out…" : "Log out"}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg"
+                >
+                  <LogIn size={15} />
+                  Sign In
+                </Link>
+                <Link
+                  href="/signup"
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#1a56ff] rounded-lg hover:bg-[#1040cc] transition-colors"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
 
-          {/* Mobile Menu Toggle */}
           <button
             className="md:hidden p-2 text-slate-600 hover:text-slate-900"
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
           >
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileOpen && (
         <div className="md:hidden bg-white border-t border-slate-100 py-3">
           <div className="max-w-7xl mx-auto px-4 space-y-1">
@@ -180,17 +221,40 @@ export default function Navigation() {
                 <Users size={16} />
                 For Employers
               </Link>
-              <Link href="/dashboard" className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg" onClick={() => setMobileOpen(false)}>
-                <LayoutDashboard size={16} />
-                Dashboard
-              </Link>
-              <Link href="/passport" className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg" onClick={() => setMobileOpen(false)}>
-                <Award size={16} />
-                Skill Passport
-              </Link>
-              <Link href="/onboarding" className="block px-3 py-2.5 text-sm font-semibold text-white bg-[#1a56ff] rounded-lg text-center" onClick={() => setMobileOpen(false)}>
-                Get Started Free
-              </Link>
+              {user ? (
+                <>
+                  <Link href={dashboardHref} className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg" onClick={() => setMobileOpen(false)}>
+                    <LayoutDashboard size={16} />
+                    Dashboard
+                  </Link>
+                  {user.role !== "employer" && (
+                    <Link href="/passport" className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg" onClick={() => setMobileOpen(false)}>
+                      <Award size={16} />
+                      Skill Passport
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg"
+                  >
+                    <LogOut size={16} />
+                    {loggingOut ? "Signing out…" : "Log out"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg" onClick={() => setMobileOpen(false)}>
+                    <LogIn size={16} />
+                    Sign In
+                  </Link>
+                  <Link href="/signup" className="flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-white bg-[#1a56ff] rounded-lg justify-center" onClick={() => setMobileOpen(false)}>
+                    <UserPlus size={16} />
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
