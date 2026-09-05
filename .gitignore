@@ -1,0 +1,16 @@
+node_modules
+.next
+out
+build
+dist
+coverage
+
+.env
+.env.local
+.env*.local
+
+.pglite
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+.pglite-test/

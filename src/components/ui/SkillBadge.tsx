@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { SkillImportance } from "@/lib/demo-data";
+import type { Importance as SkillImportance } from "@/lib/services/matching-service";
 
 interface SkillBadgeProps {
   name: string;
