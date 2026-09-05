@@ -4,19 +4,11 @@ import { and, eq, gt } from "drizzle-orm";
 import { getDb } from "@/db";
 import { sessions, users } from "@/db/schema";
 import { ApiError } from "@/lib/api/response";
+import type { SessionUser } from "@/lib/auth/types";
 
+export type { SessionUser };
 export const SESSION_COOKIE = "hb_session";
 const SESSION_DAYS = 30;
-
-export interface SessionUser {
-  id: number;
-  name: string;
-  email: string;
-  role: "candidate" | "employer" | "admin";
-  companyId: number | null;
-  targetCareerId: number | null;
-  onboardingComplete: boolean;
-}
 
 export async function createSession(userId: number): Promise<string> {
   const db = await getDb();
