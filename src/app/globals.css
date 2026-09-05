@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+@theme {
+  --color-hb-blue: #1a56ff;
+  --color-hb-blue-dark: #1040cc;
+  --color-hb-blue-light: #e8edff;
+  --color-hb-slate: #0f172a;
+  --color-hb-slate-mid: #334155;
+  --color-hb-slate-light: #64748b;
+  --color-hb-surface: #f8fafc;
+  --color-hb-border: #e2e8f0;
+  --color-hb-green: #16a34a;
+  --color-hb-green-light: #dcfce7;
+  --color-hb-yellow: #ca8a04;
+  --color-hb-yellow-light: #fef9c3;
+  --color-hb-red: #dc2626;
+  --color-hb-red-light: #fee2e2;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #ffffff;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(26, 86, 255, 0.2); }
+  50% { box-shadow: 0 0 0 8px rgba(26, 86, 255, 0); }
+}
+
+@keyframes flow-down {
+  0% { opacity: 0; transform: translateY(-8px); }
+  50% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+.animate-flow-down {
+  animation: flow-down 2s ease-in-out infinite;
+}
+
+/* Staggered animations */
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-400 { animation-delay: 400ms; }
+.animate-delay-500 { animation-delay: 500ms; }
+
+/* Glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #1a56ff 0%, #6366f1 50%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* Progress bar fill animation */
+@keyframes progress-fill {
+  from { width: 0%; }
+  to { width: var(--progress-width); }
+}
+
+.progress-fill {
+  animation: progress-fill 1s ease-out forwards;
+  width: var(--progress-width);
+}
+
+/* Skill gap indicators */
+.skill-bar-green { background: linear-gradient(90deg, #16a34a, #22c55e); }
+.skill-bar-yellow { background: linear-gradient(90deg, #ca8a04, #eab308); }
+.skill-bar-red { background: linear-gradient(90deg, #dc2626, #ef4444); }
+
+/* Bridge visual */
+.bridge-node {
+  position: relative;
+}
+
+.bridge-node::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -24px;
+  width: 2px;
+  height: 20px;
+  background: linear-gradient(to bottom, #1a56ff, transparent);
+  transform: translateX(-50%);
+}
+
+.bridge-node:last-child::after {
+  display: none;
+}
