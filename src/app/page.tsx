@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, AlertCircle, Briefcase, Users, BarChart3, BookOpen, Award, Zap, ChevronRight, TrendingUp, Star } from "lucide-react";
-import { DEMO_CAREERS } from "@/lib/demo-data";
+import { listCareers } from "@/lib/services/career-service";
+import { isDatabaseConfigured } from "@/db";
 
 const bridgeSteps = [
   { label: "Job", sub: "What employers need", color: "bg-[#1a56ff]" },
@@ -63,7 +64,6 @@ const howItWorks = [
   },
 ];
 
-const featuredCareers = DEMO_CAREERS.slice(0, 6);
 
 const colorMap: Record<string, { bg: string; text: string; border: string }> = {
   blue: { bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-100" },
@@ -92,7 +92,11 @@ const demandLabels: Record<string, string> = {
   low: "Steady Demand",
 };
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const featuredCareers = isDatabaseConfigured() ? (await listCareers()).slice(0, 6) : [];
+
   return (
     <main className="pt-16">
       {/* ─── Hero ─────────────────────────────────────────────────────────── */}
@@ -120,7 +124,7 @@ export default function HomePage() {
               </h1>
 
               <p className="text-lg text-slate-500 leading-relaxed mb-8 max-w-lg">
-                Human Bridge connects the skills companies need with the people ready to build them. Find the gap. Close the gap. Get hired.
+                Human Bridge connects the skills companies need with the people ready to build them. Find the gap, close the gap, and prove it with real work.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mb-10">
@@ -139,21 +143,13 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              {/* Social proof */}
-              <div className="flex items-center gap-5 text-sm text-slate-500">
-                <div className="flex items-center gap-1.5">
-                  <div className="flex -space-x-2">
-                    {["bg-blue-400", "bg-violet-400", "bg-pink-400", "bg-green-400"].map((c, i) => (
-                      <div key={i} className={`w-7 h-7 ${c} rounded-full border-2 border-white`} />
-                    ))}
-                  </div>
-                  <span>Join 12,000+ learners</span>
-                </div>
-                <div className="w-px h-4 bg-slate-200" />
-                <div className="flex items-center gap-1">
-                  <TrendingUp size={14} className="text-green-500" />
-                  <span>78% placement rate</span>
-                </div>
+              {/* What we will and will not claim */}
+              <div className="flex items-start gap-2 text-sm text-slate-500">
+                <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-green-500" aria-hidden />
+                <span>
+                  No placement guarantees and no invented statistics. Human Bridge is early — what
+                  we offer is a real work simulation, a defense round, and evidence you own.
+                </span>
               </div>
             </div>
 
@@ -346,10 +342,9 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {featuredCareers.map((career) => {
-              const colors = colorMap[career.color] || colorMap.blue;
-              const demandColor = demandColors[career.demandLevel];
-              const demandLabel = demandLabels[career.demandLevel];
-              const topSkills = career.skills.filter(s => s.importance === "essential").slice(0, 3);
+              const colors = colorMap[career.color ?? "blue"] || colorMap.blue;
+              const demandColor = demandColors[career.demandLevel ?? "high"] ?? demandColors.high;
+              const demandLabel = demandLabels[career.demandLevel ?? "high"] ?? demandLabels.high;
 
               return (
                 <Link
@@ -359,7 +354,7 @@ export default function HomePage() {
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className={`w-10 h-10 ${colors.bg} rounded-xl flex items-center justify-center text-lg`}>
-                      <span className={colors.text}>⚡</span>
+                      <span className={colors.text} aria-hidden>&#9889;</span>
                     </div>
                     <span className={`text-xs font-semibold ${demandColor}`}>{demandLabel}</span>
                   </div>
@@ -367,30 +362,16 @@ export default function HomePage() {
                   <h3 className="font-bold text-slate-900 mb-1">{career.name}</h3>
                   <p className="text-sm text-slate-500 mb-4">{career.tagline}</p>
 
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {topSkills.map(cs => (
-                      <span key={cs.skill.id} className="text-xs bg-slate-50 text-slate-600 border border-slate-100 px-2 py-0.5 rounded-lg">
-                        {cs.skill.name}
-                      </span>
-                    ))}
-                  </div>
-
                   <div className="flex items-center justify-between pt-3 border-t border-slate-50">
                     <div>
-                      <p className="text-xs text-slate-400">Typical salary</p>
-                      <p className="text-sm font-bold text-slate-900">₹{career.salaryMin}–{career.salaryMax} {career.salaryUnit}</p>
+                      <p className="text-xs text-slate-400">Indicative range</p>
+                      <p className="text-sm font-bold text-slate-900">
+                        {career.salaryMin}&ndash;{career.salaryMax} {career.salaryUnit}
+                      </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-slate-400">Open jobs</p>
-                      <p className="text-sm font-bold text-slate-900">{career.totalJobs.toLocaleString()}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
-                    <span className="text-xs text-slate-400">{career.growthRate}</span>
                     <span className="text-xs font-semibold text-[#1a56ff] flex items-center gap-0.5 group-hover:gap-1.5 transition-all">
-                      See Skills
-                      <ChevronRight size={12} />
+                      See skills
+                      <ChevronRight size={12} aria-hidden />
                     </span>
                   </div>
                 </Link>
@@ -416,8 +397,13 @@ export default function HomePage() {
               <div className="bg-slate-900 rounded-2xl p-6 text-white max-w-sm mx-auto shadow-2xl shadow-slate-900/30">
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <p className="text-xs text-slate-400 font-medium mb-0.5">SKILL PASSPORT</p>
-                    <p className="text-xs text-[#1a56ff] font-semibold">humanbridge.com/p/aditya</p>
+                    <p className="text-xs text-slate-400 font-medium mb-0.5">
+                      SKILL PASSPORT
+                      <span className="ml-2 rounded bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                        DEMO
+                      </span>
+                    </p>
+                    <p className="text-xs text-[#1a56ff] font-semibold">Illustrative example</p>
                   </div>
                   <div className="w-8 h-8 bg-[#1a56ff] rounded-lg flex items-center justify-center">
                     <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
@@ -527,19 +513,19 @@ export default function HomePage() {
                 <p className="text-slate-400 text-lg mb-6 leading-relaxed">
                   Access candidates whose skills have been verified through real assessments and practical projects. No more guessing from bullet points.
                 </p>
-                <div className="grid grid-cols-2 gap-4 mb-8">
+                <ul className="mb-8 space-y-2.5">
                   {[
-                    { stat: "2.4×", label: "Faster screening" },
-                    { stat: "91%", label: "Interview conversion" },
-                    { stat: "500+", label: "Verified candidates" },
-                    { stat: "48h", label: "Average time to hire" },
+                    "Structured skill requirements, not keyword soup",
+                    "Deterministic match scores with the reasoning shown",
+                    "Self-reported claims discounted against verified evidence",
+                    "Essential-skill gating and human review built in",
                   ].map(item => (
-                    <div key={item.label} className="bg-white/5 rounded-xl p-4">
-                      <p className="text-2xl font-bold text-white">{item.stat}</p>
-                      <p className="text-sm text-slate-400">{item.label}</p>
-                    </div>
+                    <li key={item} className="flex items-start gap-2.5 text-sm text-slate-300">
+                      <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-[#1a56ff]" aria-hidden />
+                      {item}
+                    </li>
                   ))}
-                </div>
+                </ul>
                 <Link
                   href="/employers"
                   className="inline-flex items-center gap-2 bg-[#1a56ff] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#1040cc] transition-colors text-sm"
@@ -549,6 +535,9 @@ export default function HomePage() {
                 </Link>
               </div>
               <div className="space-y-3">
+                <p className="text-xs font-semibold text-amber-300">
+                  DEMO — illustrative candidate cards, not real people
+                </p>
                 {[
                   { name: "Aditya Sharma", role: "Data Analyst", match: "94%", skills: ["SQL", "Excel", "Power BI"] },
                   { name: "Priya Patel", role: "Data Analyst", match: "87%", skills: ["SQL", "Python", "Tableau"] },
@@ -601,7 +590,7 @@ export default function HomePage() {
             <span className="gradient-text">Prove the skills. Get hired.</span>
           </h2>
           <p className="text-slate-500 text-lg mb-8 max-w-xl mx-auto">
-            Join 12,000+ people using Human Bridge to bridge the gap between where they are and where they want to be.
+            Close the gap between where you are and the role you want — with evidence an employer can actually check.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
