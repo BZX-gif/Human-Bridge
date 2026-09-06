@@ -58,7 +58,12 @@ export interface PublicBlueprint {
   summary: string | null;
   targetRole: string | null;
   careerId: number | null;
+  skillId: number | null;
   durationMinutes: number;
+  assessmentType: string;
+  difficulty: string;
+  scoringMethod: string;
+  antiCheatConfig: Record<string, boolean>;
   toolsAllowed: string[];
   aiPolicy: string | null;
   passingPolicy: PassingPolicy;
@@ -142,7 +147,12 @@ export async function getBlueprint(idOrSlug: string): Promise<PublicBlueprint> {
     summary: blueprint.summary,
     targetRole: blueprint.targetRole,
     careerId: blueprint.careerId,
+    skillId: blueprint.skillId,
     durationMinutes: blueprint.durationMinutes,
+    assessmentType: blueprint.assessmentType,
+    difficulty: blueprint.difficulty,
+    scoringMethod: blueprint.scoringMethod,
+    antiCheatConfig: (blueprint.antiCheatConfig as Record<string, boolean>) ?? {},
     toolsAllowed: (blueprint.toolsAllowed as string[]) ?? [],
     aiPolicy: blueprint.aiPolicy,
     passingPolicy: blueprint.passingPolicy as PassingPolicy,

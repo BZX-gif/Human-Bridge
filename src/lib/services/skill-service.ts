@@ -183,12 +183,30 @@ export async function recomputeSkillScores(
       "SELF_REPORTED",
     );
 
+    const assessedRows = rows.filter((r) => r.source === "ASSESSED");
     const lastVerified = scoring.length
       ? scoring.reduce(
           (latest, r) => (r.createdAt > latest ? r.createdAt : latest),
           scoring[0].createdAt,
         )
       : null;
+    const lastAssessedAt = assessedRows.length
+      ? assessedRows.reduce(
+          (latest, r) => (r.createdAt > latest ? r.createdAt : latest),
+          assessedRows[0].createdAt,
+        )
+      : null;
+
+    const evidenceBreakdown = rows.map((r) => ({
+      source: r.source,
+      label: r.label,
+      score: r.score,
+      weight: r.weight,
+      attemptId: r.attemptId,
+      projectId: r.projectId,
+      jobId: r.jobId,
+      createdAt: r.createdAt,
+    }));
 
     await db
       .insert(skillScores)
@@ -199,15 +217,11 @@ export async function recomputeSkillScores(
         level,
         confidence,
         evidenceCount: rows.length,
+        assessmentCount: assessedRows.length,
         verificationStatus: STATUS_BY_SOURCE[strongest],
-        breakdown: rows.map((r) => ({
-          source: r.source,
-          label: r.label,
-          score: r.score,
-          weight: r.weight,
-          createdAt: r.createdAt,
-        })),
+        breakdown: evidenceBreakdown,
         lastVerifiedAt: lastVerified,
+        lastAssessedAt,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -217,15 +231,11 @@ export async function recomputeSkillScores(
           level,
           confidence,
           evidenceCount: rows.length,
+          assessmentCount: assessedRows.length,
           verificationStatus: STATUS_BY_SOURCE[strongest],
-          breakdown: rows.map((r) => ({
-            source: r.source,
-            label: r.label,
-            score: r.score,
-            weight: r.weight,
-            createdAt: r.createdAt,
-          })),
+          breakdown: evidenceBreakdown,
           lastVerifiedAt: lastVerified,
+          lastAssessedAt,
           updatedAt: new Date(),
         },
       });
@@ -253,8 +263,10 @@ export interface UserSkillView {
   level: SkillLevel;
   confidence: Confidence;
   evidenceCount: number;
+  assessmentCount: number;
   verificationStatus: "self_reported" | "assessed" | "project_verified" | "employer_verified";
   lastVerifiedAt: Date | null;
+  lastAssessedAt: Date | null;
 }
 
 export async function getUserSkills(userId: number): Promise<UserSkillView[]> {
@@ -268,8 +280,10 @@ export async function getUserSkills(userId: number): Promise<UserSkillView[]> {
       level: skillScores.level,
       confidence: skillScores.confidence,
       evidenceCount: skillScores.evidenceCount,
+      assessmentCount: skillScores.assessmentCount,
       verificationStatus: skillScores.verificationStatus,
       lastVerifiedAt: skillScores.lastVerifiedAt,
+      lastAssessedAt: skillScores.lastAssessedAt,
     })
     .from(skillScores)
     .innerJoin(skills, eq(skills.id, skillScores.skillId))

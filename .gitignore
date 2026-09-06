@@ -14,3 +14,6 @@ coverage
 next-env.d.ts
 .DS_Store
 .pglite-test/
+
+# Embedded PGlite dev/test databases
+.pglite-*/

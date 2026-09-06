@@ -121,6 +121,58 @@ export const blueprintStatusEnum = pgEnum("blueprint_status", [
   "archived",
 ]);
 
+// ─── Skills taxonomy enums ──────────────────────────────────────────────────
+export const trackStatusEnum = pgEnum("track_status", ["active", "inactive", "archived"]);
+
+export const skillStatusEnum = pgEnum("skill_status", ["active", "disabled", "archived"]);
+
+/** High-level classification used across the taxonomy (AI Fluency is cross-functional). */
+export const skillTypeEnum = pgEnum("skill_type", [
+  "domain",
+  "tool",
+  "human",
+  "ai_fluency",
+]);
+
+/** Entry difficulty of a skill as taxonomy metadata (not a measured level). */
+export const skillDifficultyEnum = pgEnum("skill_difficulty", [
+  "beginner",
+  "intermediate",
+  "advanced",
+]);
+
+/** Real-world capability dimensions every important skill is mapped to. */
+export const capabilityDimensionEnum = pgEnum("capability_dimension", [
+  "knowledge",
+  "practical_capability",
+  "real_world_task",
+  "reasoning",
+  "communication",
+  "verification",
+]);
+
+/** Assessment shapes the engine must be able to host. */
+export const assessmentTypeEnum = pgEnum("assessment_type", [
+  "mcq",
+  "short_answer",
+  "coding",
+  "data_analysis",
+  "case_study",
+  "simulation",
+  "practical_task",
+  "ai_evaluation",
+  "oral_verification",
+]);
+
+/** How an assessment's scores are produced. Weighted rubrics live in DB, not components. */
+export const scoringMethodEnum = pgEnum("scoring_method", [
+  "weighted_rubric",
+  "deterministic",
+  "ai_assisted",
+  "human_review",
+  "hybrid",
+]);
+
 // ─── Skill Categories ──────────────────────────────────────────────────────
 export const skillCategories = pgTable("skill_categories", {
   id: serial("id").primaryKey(),
@@ -139,8 +191,122 @@ export const skills = pgTable("skills", {
   description: text("description"),
   categoryId: integer("category_id").references(() => skillCategories.id),
   whyEmployersWant: text("why_employers_want"),
+  /** Taxonomy metadata — classification, entry difficulty and market signal. */
+  skillType: skillTypeEnum("skill_type").default("domain").notNull(),
+  difficulty: skillDifficultyEnum("difficulty").default("beginner").notNull(),
+  importance: skillImportanceEnum("importance").default("important").notNull(),
+  marketRelevance: demandLevelEnum("market_relevance").default("medium").notNull(),
+  status: skillStatusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// ─── Sub-skills ─────────────────────────────────────────────────────────────
+/** A skill can be decomposed into measurable sub-skills (e.g. SQL → JOINs). */
+export const subSkills = pgTable(
+  "sub_skills",
+  {
+    id: serial("id").primaryKey(),
+    skillId: integer("skill_id")
+      .references(() => skills.id, { onDelete: "cascade" })
+      .notNull(),
+    name: varchar("name", { length: 150 }).notNull(),
+    slug: varchar("slug", { length: 150 }).notNull(),
+    description: text("description"),
+    ordering: integer("ordering").default(0).notNull(),
+    status: skillStatusEnum("status").default("active").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("sub_skills_skill_slug_unique").on(t.skillId, t.slug),
+    index("sub_skills_skill_idx").on(t.skillId),
+  ],
+);
+
+// ─── Skill Capabilities (real-world capability model) ──────────────────────
+/**
+ * Every important skill is described across six dimensions — knowledge,
+ * practical capability, real-world task, reasoning, communication and
+ * verification. Assessment definitions can hang off these via `definition`.
+ */
+export const skillCapabilities = pgTable(
+  "skill_capabilities",
+  {
+    id: serial("id").primaryKey(),
+    skillId: integer("skill_id")
+      .references(() => skills.id, { onDelete: "cascade" })
+      .notNull(),
+    dimension: capabilityDimensionEnum("dimension").notNull(),
+    title: varchar("title", { length: 200 }).notNull(),
+    description: text("description"),
+    /** Structured task/assessment definition (prompt, deliverable, criteria). */
+    definition: jsonb("definition"),
+    ordering: integer("ordering").default(0).notNull(),
+    status: skillStatusEnum("status").default("active").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("skill_capability_skill_dimension_unique").on(t.skillId, t.dimension),
+    index("skill_capability_skill_idx").on(t.skillId),
+  ],
+);
+
+// ─── Career Tracks (taxonomy) ───────────────────────────────────────────────
+/**
+ * Career tracks are the taxonomy's top-level grouping (Software Engineering,
+ * Data Analytics, …). Roles in `careers` belong to a track via `careers.trackId`
+ * and skills belong to many tracks via `track_skills` — this is what lets the
+ * AI Fluency layer be attached to more than one track.
+ */
+export const careerTracks = pgTable(
+  "career_tracks",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 150 }).notNull(),
+    slug: varchar("slug", { length: 150 }).notNull().unique(),
+    description: text("description"),
+    /** Taxonomy grouping, e.g. "Technology", "Data & AI", "Business". */
+    category: varchar("category", { length: 100 }),
+    /** Difficulty ladder shown on the track page (beginner → advanced). */
+    difficultyLevels: jsonb("difficulty_levels")
+      .$type<("beginner" | "intermediate" | "advanced")[]>()
+      .default(["beginner", "intermediate", "advanced"])
+      .notNull(),
+    status: trackStatusEnum("status").default("active").notNull(),
+    ordering: integer("ordering").default(0).notNull(),
+    icon: varchar("icon", { length: 50 }),
+    color: varchar("color", { length: 20 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("career_tracks_category_idx").on(t.category)],
+);
+
+// ─── Track Skills (many-to-many) ────────────────────────────────────────────
+export const trackSkills = pgTable(
+  "track_skills",
+  {
+    id: serial("id").primaryKey(),
+    trackId: integer("track_id")
+      .references(() => careerTracks.id, { onDelete: "cascade" })
+      .notNull(),
+    skillId: integer("skill_id")
+      .references(() => skills.id, { onDelete: "cascade" })
+      .notNull(),
+    importance: skillImportanceEnum("importance").default("important").notNull(),
+    /** The level at which the skill is considered job-ready for this track. */
+    requiredLevel: skillLevelEnum("required_level").default("intermediate").notNull(),
+    categoryLabel: varchar("category_label", { length: 100 }),
+    ordering: integer("ordering").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("track_skills_unique").on(t.trackId, t.skillId),
+    index("track_skills_skill_idx").on(t.skillId),
+  ],
+);
 
 // ─── Careers ───────────────────────────────────────────────────────────────
 export const careers = pgTable("careers", {
@@ -162,9 +328,11 @@ export const careers = pgTable("careers", {
   careerPathway: jsonb("career_pathway"),
   typicalRequirements: jsonb("typical_requirements"),
   typicalTasks: jsonb("typical_tasks"),
+  /** The taxonomy track this role belongs to (e.g. data-analyst → data-analytics). */
+  trackId: integer("track_id").references(() => careerTracks.id),
   isDemo: boolean("is_demo").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [index("careers_track_idx").on(t.trackId)]);
 
 // ─── Career Skills ─────────────────────────────────────────────────────────
 export const careerSkills = pgTable(
@@ -299,11 +467,25 @@ export const assessmentBlueprints = pgTable(
     summary: text("summary"),
     targetRole: varchar("target_role", { length: 150 }),
     careerId: integer("career_id").references(() => careers.id),
+    /** Primary skill measured by this assessment (an assessment may test more). */
+    skillId: integer("skill_id").references(() => skills.id),
     jobId: integer("job_id").references(() => jobs.id),
     createdByUserId: integer("created_by_user_id").references(() => users.id),
     durationMinutes: integer("duration_minutes").default(120).notNull(),
     /** Passing policy is data-driven — see lib/assessment/types PassingPolicy */
     passingPolicy: jsonb("passing_policy").notNull(),
+    assessmentType: assessmentTypeEnum("assessment_type").default("practical_task").notNull(),
+    difficulty: skillDifficultyEnum("difficulty").default("intermediate").notNull(),
+    scoringMethod: scoringMethodEnum("scoring_method").default("weighted_rubric").notNull(),
+    /**
+     * Anti-cheating / AI-resistant design configuration. Flags are assessment
+     * metadata — the engine and item generators read them; nothing here is
+     * hardcoded in components.
+     */
+    antiCheatConfig: jsonb("anti_cheat_config")
+      .$type<AntiCheatConfig>()
+      .default({})
+      .notNull(),
     toolsAllowed: jsonb("tools_allowed"),
     aiPolicy: text("ai_policy"),
     requireHumanReview: boolean("require_human_review").default(false).notNull(),
@@ -311,7 +493,47 @@ export const assessmentBlueprints = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (t) => [uniqueIndex("blueprint_slug_version_unique").on(t.slug, t.version)],
+  (t) => [
+    uniqueIndex("blueprint_slug_version_unique").on(t.slug, t.version),
+    index("blueprint_skill_idx").on(t.skillId),
+  ],
+);
+
+/** Flags describing how this assessment resists AI/cheating. Stored in DB. */
+export interface AntiCheatConfig {
+  randomizedQuestions?: boolean;
+  randomizedDataset?: boolean;
+  randomizedScenario?: boolean;
+  uniqueTaskParameters?: boolean;
+  timeLimit?: boolean;
+  practicalTasks?: boolean;
+  changingScenario?: boolean;
+  followUpQuestions?: boolean;
+  reasoningProcessEvidence?: boolean;
+  hiddenTestCases?: boolean;
+  aiOutputVerificationTasks?: boolean;
+  liveVerification?: boolean;
+}
+
+/** Normalised assessment → skill relationship (skillSlugs on items stay for back-compat). */
+export const assessmentBlueprintSkills = pgTable(
+  "assessment_blueprint_skills",
+  {
+    id: serial("id").primaryKey(),
+    blueprintId: integer("blueprint_id")
+      .references(() => assessmentBlueprints.id, { onDelete: "cascade" })
+      .notNull(),
+    skillId: integer("skill_id")
+      .references(() => skills.id, { onDelete: "cascade" })
+      .notNull(),
+    /** Relative weight of this skill within the assessment. */
+    weight: integer("weight").default(100).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("blueprint_skill_unique").on(t.blueprintId, t.skillId),
+    index("blueprint_skill_skill_idx").on(t.skillId),
+  ],
 );
 
 export const assessmentRubrics = pgTable(
@@ -581,14 +803,49 @@ export const skillScores = pgTable(
     level: skillLevelEnum("level").default("not_evaluated").notNull(),
     confidence: confidenceEnum("confidence").default("low").notNull(),
     evidenceCount: integer("evidence_count").default(0).notNull(),
+    /** Number of assessed (non-self-reported) evidence pieces on record. */
+    assessmentCount: integer("assessment_count").default(0).notNull(),
     verificationStatus: verificationStatusEnum("verification_status")
       .default("self_reported")
       .notNull(),
     breakdown: jsonb("breakdown"),
     lastVerifiedAt: timestamp("last_verified_at"),
+    lastAssessedAt: timestamp("last_assessed_at"),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (t) => [uniqueIndex("skill_scores_user_skill_unique").on(t.userId, t.skillId)],
+  (t) => [
+    uniqueIndex("skill_scores_user_skill_unique").on(t.userId, t.skillId),
+    index("skill_scores_user_idx").on(t.userId),
+    index("skill_scores_skill_idx").on(t.skillId),
+  ],
+);
+
+// ─── Multi-dimensional score dimensions ────────────────────────────────────
+/**
+ * Scoring is never one number. An attempt can be broken into dimensions
+ * (technical knowledge, practical execution, problem solving, data accuracy,
+ * business reasoning, AI verification, communication) with their own weights.
+ * Weights live here — not in components.
+ */
+export const scoreDimensions = pgTable(
+  "score_dimensions",
+  {
+    id: serial("id").primaryKey(),
+    attemptId: integer("attempt_id")
+      .references(() => assessmentAttempts.id, { onDelete: "cascade" })
+      .notNull(),
+    key: varchar("key", { length: 100 }).notNull(),
+    label: varchar("label", { length: 200 }).notNull(),
+    score: integer("score").notNull(),
+    weight: integer("weight").default(100).notNull(),
+    /** Where the dimension came from: section, rubric or skill. */
+    source: varchar("source", { length: 60 }).default("assessment").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("score_dimensions_attempt_key_unique").on(t.attemptId, t.key),
+    index("score_dimensions_attempt_idx").on(t.attemptId),
+  ],
 );
 
 // ─── Projects ──────────────────────────────────────────────────────────────

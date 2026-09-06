@@ -81,6 +81,15 @@ export async function requireUser(): Promise<SessionUser> {
   return user;
 }
 
+/** Require an admin account (skill/track/assessment catalogue management). */
+export async function requireAdmin(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (user.role !== "admin") {
+    throw new ApiError("FORBIDDEN", "This action requires an admin account.");
+  }
+  return user;
+}
+
 /** Require an employer (or admin) with a company attached. */
 export async function requireEmployer(): Promise<SessionUser & { companyId: number }> {
   const user = await requireUser();
