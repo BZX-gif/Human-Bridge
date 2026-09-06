@@ -1,19 +1,24 @@
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
+  assessmentBlueprintSkills,
   assessmentBlueprints,
   assessmentItems,
   assessmentRubrics,
   assessmentSections,
   careerSkills,
+  careerTracks,
   careers,
   companies,
   jobSkills,
   jobs,
   learningResources,
   projects,
+  skillCapabilities,
   skillCategories,
   skills,
+  subSkills,
+  trackSkills,
 } from "@/db/schema";
 import {
   DEMO_CAREERS,
@@ -24,11 +29,22 @@ import {
   DEMO_SKILLS,
 } from "@/lib/demo-data";
 import { BLUEPRINT_SEEDS } from "@/lib/assessment/blueprints/data-analyst";
+import {
+  TAXONOMY_CAPABILITIES,
+  TAXONOMY_SKILLS,
+  TAXONOMY_SUB_SKILLS,
+  TAXONOMY_TRACKS,
+  TRACK_BY_CAREER_SLUG,
+} from "./taxonomy";
 import { resolveCareerRequirement, resolveJobRequirement, slugify } from "./requirements";
 
 export interface SeedResult {
   skillCategories: number;
   skills: number;
+  careerTracks: number;
+  trackSkills: number;
+  subSkills: number;
+  skillCapabilities: number;
   careers: number;
   careerSkills: number;
   companies: number;
@@ -58,6 +74,7 @@ export async function seedDatabase(): Promise<SeedResult> {
     { name: "Tools", slug: "tools", description: "Software and platforms", icon: "Wrench" },
     { name: "Human Skills", slug: "human-skills", description: "Interpersonal capabilities", icon: "Users" },
     { name: "Domain", slug: "domain", description: "Industry-specific knowledge", icon: "Building2" },
+    { name: "AI Fluency", slug: "ai-fluency", description: "Cross-functional AI capabilities", icon: "Sparkles" },
   ];
   for (const cat of categorySeeds) {
     await db
@@ -75,10 +92,25 @@ export async function seedDatabase(): Promise<SeedResult> {
     tool: "tools",
     human: "human-skills",
     domain: "domain",
+    ai: "ai-fluency",
   };
 
-  // ── Skills ─────────────────────────────────────────────────────────────
-  for (const skill of DEMO_SKILLS) {
+  // ── Skills (legacy demo catalogue + taxonomy skills) ───────────────────
+  const allSkillSeeds = [
+    ...DEMO_SKILLS.map((skill) => ({
+      name: skill.name,
+      slug: skill.slug,
+      description: skill.description,
+      category: skill.category,
+      skillType: (skill.category === "tool" ? "tool" : skill.category === "human" ? "human" : "domain") as "domain" | "tool" | "human",
+      difficulty: "beginner" as const,
+      importance: "important" as const,
+      marketRelevance: "high" as const,
+      whyEmployersWant: skill.whyEmployersWant,
+    })),
+    ...TAXONOMY_SKILLS,
+  ];
+  for (const skill of allSkillSeeds) {
     const categoryId = categoryIdBySlug.get(CATEGORY_SLUG[skill.category] ?? "core-skills") ?? null;
     await db
       .insert(skills)
@@ -87,7 +119,13 @@ export async function seedDatabase(): Promise<SeedResult> {
         slug: skill.slug,
         description: skill.description,
         categoryId,
-        whyEmployersWant: skill.whyEmployersWant,
+        whyEmployersWant: skill.whyEmployersWant ?? null,
+        skillType: skill.skillType,
+        difficulty: skill.difficulty,
+        importance: skill.importance,
+        marketRelevance: skill.marketRelevance,
+        status: "active",
+        updatedAt: new Date(),
       })
       .onConflictDoUpdate({
         target: skills.slug,
@@ -95,15 +133,153 @@ export async function seedDatabase(): Promise<SeedResult> {
           name: skill.name,
           description: skill.description,
           categoryId,
-          whyEmployersWant: skill.whyEmployersWant,
+          whyEmployersWant: skill.whyEmployersWant ?? null,
+          skillType: skill.skillType,
+          difficulty: skill.difficulty,
+          importance: skill.importance,
+          marketRelevance: skill.marketRelevance,
+          updatedAt: new Date(),
         },
       });
   }
   const skillRows = await db.select().from(skills);
   const skillIdBySlug = new Map(skillRows.map((s) => [s.slug, s.id]));
 
-  // ── Careers ────────────────────────────────────────────────────────────
+  // ── Career tracks (taxonomy layer) ─────────────────────────────────────
+  for (const track of TAXONOMY_TRACKS) {
+    await db
+      .insert(careerTracks)
+      .values({
+        name: track.name,
+        slug: track.slug,
+        description: track.description,
+        category: track.category,
+        difficultyLevels: ["beginner", "intermediate", "advanced"],
+        status: "active",
+        ordering: track.ordering,
+        icon: track.icon,
+        color: track.color,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: careerTracks.slug,
+        set: {
+          name: track.name,
+          description: track.description,
+          category: track.category,
+          difficultyLevels: ["beginner", "intermediate", "advanced"],
+          status: "active",
+          ordering: track.ordering,
+          icon: track.icon,
+          color: track.color,
+          updatedAt: new Date(),
+        },
+      });
+  }
+  const trackRows = await db.select().from(careerTracks);
+  const trackIdBySlug = new Map(trackRows.map((t) => [t.slug, t.id]));
+
+  // ── Track ↔ Skill links (supports multi-track AI Fluency) ──────────────
+  let trackSkillCount = 0;
+  for (const track of TAXONOMY_TRACKS) {
+    const trackId = trackIdBySlug.get(track.slug);
+    if (!trackId) continue;
+    let order = 0;
+    for (const ts of track.skills) {
+      const skillId = skillIdBySlug.get(ts.slug);
+      if (!skillId) continue;
+      await db
+        .insert(trackSkills)
+        .values({
+          trackId,
+          skillId,
+          importance: ts.importance,
+          requiredLevel: ts.requiredLevel,
+          categoryLabel: ts.categoryLabel ?? null,
+          ordering: order++,
+        })
+        .onConflictDoUpdate({
+          target: [trackSkills.trackId, trackSkills.skillId],
+          set: {
+            importance: ts.importance,
+            requiredLevel: ts.requiredLevel,
+            categoryLabel: ts.categoryLabel ?? null,
+            ordering: order - 1,
+          },
+        });
+      trackSkillCount += 1;
+    }
+  }
+
+  // ── Sub-skills ────────────────────────────────────────────────────────
+  let subSkillCount = 0;
+  for (const group of TAXONOMY_SUB_SKILLS) {
+    const skillId = skillIdBySlug.get(group.skillSlug);
+    if (!skillId) continue;
+    let order = 0;
+    for (const sub of group.subSkills) {
+      await db
+        .insert(subSkills)
+        .values({
+          skillId,
+          name: sub.name,
+          slug: sub.slug,
+          description: sub.description,
+          ordering: order++,
+          status: "active",
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: [subSkills.skillId, subSkills.slug],
+          set: {
+            name: sub.name,
+            description: sub.description,
+            ordering: order - 1,
+            status: "active",
+            updatedAt: new Date(),
+          },
+        });
+      subSkillCount += 1;
+    }
+  }
+
+  // ── Capability definitions (real-world capability model) ───────────────
+  let capabilityCount = 0;
+  for (const group of TAXONOMY_CAPABILITIES) {
+    const skillId = skillIdBySlug.get(group.skillSlug);
+    if (!skillId) continue;
+    let order = 0;
+    for (const cap of group.capabilities) {
+      await db
+        .insert(skillCapabilities)
+        .values({
+          skillId,
+          dimension: cap.dimension,
+          title: cap.title,
+          description: cap.description,
+          definition: cap.definition ?? null,
+          ordering: order++,
+          status: "active",
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: [skillCapabilities.skillId, skillCapabilities.dimension],
+          set: {
+            title: cap.title,
+            description: cap.description,
+            definition: cap.definition ?? null,
+            ordering: order - 1,
+            status: "active",
+            updatedAt: new Date(),
+          },
+        });
+      capabilityCount += 1;
+    }
+  }
+
+  // ── Careers (roles) ────────────────────────────────────────────────────
   for (const career of DEMO_CAREERS) {
+    const trackId = trackIdBySlug.get(TRACK_BY_CAREER_SLUG[career.slug] ?? "") ?? null;
     await db
       .insert(careers)
       .values({
@@ -122,6 +298,7 @@ export async function seedDatabase(): Promise<SeedResult> {
         color: career.color,
         careerPathway: career.careerPathway,
         typicalRequirements: career.typicalRequirements,
+        trackId,
         isDemo: true,
       })
       .onConflictDoUpdate({
@@ -136,6 +313,7 @@ export async function seedDatabase(): Promise<SeedResult> {
           salaryMax: career.salaryMax,
           careerPathway: career.careerPathway,
           typicalRequirements: career.typicalRequirements,
+          trackId,
         },
       });
   }
@@ -312,7 +490,11 @@ export async function seedDatabase(): Promise<SeedResult> {
 
   return {
     skillCategories: categorySeeds.length,
-    skills: DEMO_SKILLS.length,
+    skills: allSkillSeeds.length,
+    careerTracks: TAXONOMY_TRACKS.length,
+    trackSkills: trackSkillCount,
+    subSkills: subSkillCount,
+    skillCapabilities: capabilityCount,
     careers: DEMO_CAREERS.length,
     careerSkills: careerSkillCount,
     companies: DEMO_COMPANIES.length,
@@ -340,6 +522,8 @@ export async function seedBlueprints(): Promise<{
   const db = await getDb();
   const careerRows = await db.select().from(careers);
   const careerIdBySlug = new Map(careerRows.map((c) => [c.slug, c.id]));
+  const skillRows = await db.select().from(skills);
+  const skillIdBySlug = new Map(skillRows.map((s) => [s.slug, s.id]));
 
   let sectionCount = 0;
   let itemCount = 0;
@@ -356,6 +540,9 @@ export async function seedBlueprints(): Promise<{
       )
       .limit(1);
 
+    // Primary skill for this blueprint (data-analysis for the revenue investigation).
+    const primarySkillId = skillIdBySlug.get("data-analysis") ?? null;
+
     const values = {
       slug: seed.slug,
       version: seed.version,
@@ -363,8 +550,26 @@ export async function seedBlueprints(): Promise<{
       summary: seed.summary,
       targetRole: seed.targetRole,
       careerId,
+      skillId: primarySkillId,
       durationMinutes: seed.durationMinutes,
       passingPolicy: seed.passingPolicy,
+      assessmentType: "data_analysis" as const,
+      difficulty: "intermediate" as const,
+      scoringMethod: "weighted_rubric" as const,
+      antiCheatConfig: {
+        randomizedQuestions: false,
+        randomizedDataset: false,
+        randomizedScenario: false,
+        uniqueTaskParameters: false,
+        timeLimit: true,
+        practicalTasks: true,
+        changingScenario: false,
+        followUpQuestions: true,
+        reasoningProcessEvidence: true,
+        hiddenTestCases: false,
+        aiOutputVerificationTasks: true,
+        liveVerification: false,
+      },
       toolsAllowed: seed.toolsAllowed,
       aiPolicy: seed.aiPolicy,
       status: "published" as const,
@@ -385,6 +590,22 @@ export async function seedBlueprints(): Promise<{
     // Replace this version's content wholesale (sections cascade to items).
     await db.delete(assessmentSections).where(eq(assessmentSections.blueprintId, blueprintId));
     await db.delete(assessmentRubrics).where(eq(assessmentRubrics.blueprintId, blueprintId));
+    await db.delete(assessmentBlueprintSkills).where(
+      eq(assessmentBlueprintSkills.blueprintId, blueprintId),
+    );
+
+    // Normalised blueprint → skill links (relationship, not name strings).
+    const blueprintSkillSlugs = new Set<string>();
+    for (const section of seed.sections) {
+      for (const item of section.items) {
+        for (const slug of item.skillSlugs) blueprintSkillSlugs.add(slug);
+      }
+    }
+    for (const slug of blueprintSkillSlugs) {
+      const skillId = skillIdBySlug.get(slug);
+      if (!skillId) continue;
+      await db.insert(assessmentBlueprintSkills).values({ blueprintId, skillId, weight: 100 });
+    }
 
     const rubricIdByKey = new Map<string, number>();
     for (const rubric of seed.rubrics) {

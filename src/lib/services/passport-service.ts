@@ -25,7 +25,9 @@ export interface PassportSkillView {
   confidence: "low" | "medium" | "high";
   verificationStatus: string;
   evidenceCount: number;
+  assessmentCount: number;
   lastVerifiedAt: string | null;
+  lastAssessedAt: string | null;
   evidence: { source: string; label: string; detail: string | null; score: number | null; createdAt: string }[];
 }
 
@@ -136,7 +138,9 @@ async function buildPassport(
     confidence: s.confidence,
     verificationStatus: s.verificationStatus,
     evidenceCount: s.evidenceCount,
+    assessmentCount: s.assessmentCount,
     lastVerifiedAt: s.lastVerifiedAt?.toISOString() ?? null,
+    lastAssessedAt: s.lastAssessedAt?.toISOString() ?? null,
     evidence: evidenceRows
       .filter((e) => e.slug === s.slug)
       .map((e) => ({

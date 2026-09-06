@@ -6,6 +6,8 @@ import {
   assessmentDefenseResponses,
   assessmentEvaluations,
   assessmentRubricScores,
+  assessmentSections,
+  scoreDimensions,
 } from "@/db/schema";
 import { ApiError } from "@/lib/api/response";
 import { getEvaluationProvider } from "@/lib/ai";
@@ -395,6 +397,43 @@ export async function evaluateAttempt(
     humanReviewRequired,
     evidenceCollected: Array.from(new Set(evidenceCollected)),
   });
+
+  // ── Multi-dimensional scoring ─────────────────────────────────────────
+  // Never reduce a candidate to one number. Persist the weighted dimensions
+  // (section scores + every rubric criterion) so profiles can show e.g.
+  // Technical knowledge vs Practical execution vs Communication separately.
+  const rubricScoreRows = await db
+    .select({ score: assessmentRubricScores, sectionKey: assessmentSections.key })
+    .from(assessmentRubricScores)
+    .innerJoin(
+      assessmentEvaluations,
+      eq(assessmentEvaluations.id, assessmentRubricScores.evaluationId),
+    )
+    .innerJoin(assessmentSections, eq(assessmentSections.id, assessmentEvaluations.sectionId))
+    .where(eq(assessmentEvaluations.attemptId, attemptId));
+
+  await db.delete(scoreDimensions).where(eq(scoreDimensions.attemptId, attemptId));
+  const dimensionValues: (typeof scoreDimensions.$inferInsert)[] = [
+    ...sectionScores.map((s) => ({
+      attemptId,
+      key: `section.${s.sectionKey}`,
+      label: s.title,
+      score: s.score ?? 0,
+      weight: s.weight,
+      source: "section",
+    })),
+    ...rubricScoreRows.map((r) => ({
+      attemptId,
+      key: `${r.sectionKey}.${r.score.criterionKey}`,
+      label: r.score.label ?? r.score.criterionKey,
+      score: r.score.score,
+      weight: r.score.weight,
+      source: "rubric",
+    })),
+  ];
+  if (dimensionValues.length > 0) {
+    await db.insert(scoreDimensions).values(dimensionValues).onConflictDoNothing();
+  }
 
   const defenseDone = sectionScores.some((s) => s.sectionKind === "defense" && s.evaluated);
   const nextStatus = defenseDone
