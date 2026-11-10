@@ -68,25 +68,25 @@ export function CopilotChat({
   };
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] pt-16">
+    <main className="min-h-full bg-paper-2">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col px-4 py-8 sm:px-6">
         <header className="mb-6">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[#1a56ff]">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-ink">
             Career Copilot
           </p>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-ink">
             Ask about your evidence, {userName}
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          <p className="mt-2 text-sm leading-relaxed text-muted">
             The Copilot is given your real skill scores, levels, verification status and gaps. It
             is instructed not to invent numbers — if it does not know, it will say so.
           </p>
         </header>
 
         {!available && (
-          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <Bot size={16} className="mt-0.5 shrink-0 text-amber-600" aria-hidden />
-            <div className="text-sm text-amber-900">
+          <div className="mb-6 flex items-start gap-3 rounded-lg border border-ochre/20 bg-ochre-soft p-4">
+            <Bot size={16} className="mt-0.5 shrink-0 text-ochre" aria-hidden />
+            <div className="text-sm text-ochre">
               <p className="font-semibold">Career Copilot is unavailable</p>
               <p className="mt-1 leading-relaxed">
                 No AI provider is configured on this deployment, so there is nothing to chat with.
@@ -110,15 +110,15 @@ export function CopilotChat({
           <>
             <div className="flex-1 space-y-4" aria-live="polite">
               {messages.length === 0 && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-6">
-                  <p className="mb-4 text-sm text-slate-600">Try one of these:</p>
+                <div className="rounded-lg border border-line bg-paper p-6">
+                  <p className="mb-4 text-sm text-muted">Try one of these:</p>
                   <div className="flex flex-wrap gap-2">
                     {SUGGESTIONS.map((s) => (
                       <button
                         key={s}
                         type="button"
                         onClick={() => void send(s)}
-                        className="rounded-xl border border-slate-200 px-3 py-2 text-left text-xs text-slate-700 transition-colors hover:border-[#1a56ff] hover:text-[#1a56ff]"
+                        className="rounded-md border border-line px-3 py-2 text-left text-xs text-graphite transition-colors hover:border-ink hover:text-ink"
                       >
                         {s}
                       </button>
@@ -135,18 +135,18 @@ export function CopilotChat({
                   <span
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                       message.role === "user"
-                        ? "bg-slate-900 text-white"
-                        : "bg-[#eef3ff] text-[#1a56ff]"
+                        ? "bg-ink text-white"
+                        : "bg-paper-2 text-ink"
                     }`}
                     aria-hidden
                   >
                     {message.role === "user" ? <User size={15} /> : <Bot size={15} />}
                   </span>
                   <div
-                    className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                    className={`max-w-[80%] whitespace-pre-wrap rounded-lg px-4 py-3 text-sm leading-relaxed ${
                       message.role === "user"
-                        ? "bg-[#1a56ff] text-white"
-                        : "border border-slate-200 bg-white text-slate-800"
+                        ? "bg-ink text-white"
+                        : "border border-line bg-paper text-ink"
                     }`}
                   >
                     {message.content}
@@ -156,17 +156,17 @@ export function CopilotChat({
 
               {busy && (
                 <div className="flex gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#eef3ff] text-[#1a56ff]" aria-hidden>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-paper-2 text-ink" aria-hidden>
                     <Bot size={15} />
                   </span>
-                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-400">
+                  <div className="rounded-lg border border-line bg-paper px-4 py-3 text-sm text-faint">
                     Thinking...
                   </div>
                 </div>
               )}
 
               {error && (
-                <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                <p role="alert" className="rounded-md bg-rust-soft p-3 text-sm text-rust">
                   {error}
                 </p>
               )}
@@ -174,7 +174,7 @@ export function CopilotChat({
             </div>
 
             <form
-              className="sticky bottom-0 mt-6 flex gap-2 bg-[#f8fafc] py-4"
+              className="sticky bottom-0 mt-6 flex gap-2 bg-paper-2 py-4"
               onSubmit={(e) => {
                 e.preventDefault();
                 void send(input);
@@ -188,7 +188,7 @@ export function CopilotChat({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about your skills, gaps or next step..."
-                className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1a56ff] focus:outline-none focus:ring-2 focus:ring-[#1a56ff]/20"
+                className="flex-1 rounded-md border border-line px-4 py-3 text-sm text-ink placeholder:text-faint focus:border-ink focus:outline-none focus:ring-2 focus:ring-[#0B0B0C]/20"
               />
               <Button type="submit" disabled={busy || !input.trim()}>
                 <Send size={15} aria-hidden />

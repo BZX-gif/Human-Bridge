@@ -5,6 +5,7 @@ import { handleRoute, ok } from "@/lib/api/response";
 import { requireUser } from "@/lib/auth/session";
 import { addEvidence, refreshPassport } from "@/lib/services/skill-service";
 import { onboardingSchema } from "@/lib/validation/common";
+import { ensureRoadmapForUser } from "@/lib/services/roadmap-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,6 +54,19 @@ export async function POST(request: Request) {
     }
 
     await refreshPassport(user.id);
-    return ok({ onboardingComplete: true, targetCareerId });
+
+    let roadmapId: number | null = null;
+    if (targetCareerId) {
+      try {
+        const roadmap = await ensureRoadmapForUser(user.id, targetCareerId);
+        roadmapId = roadmap.roadmapId;
+      } catch (error) {
+        // Onboarding must still complete. The journey page can create the
+        // roadmap on demand if this failed.
+        console.error("[onboarding] roadmap creation failed", error);
+      }
+    }
+
+    return ok({ onboardingComplete: true, targetCareerId, roadmapId });
   });
 }

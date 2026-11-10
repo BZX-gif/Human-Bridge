@@ -41,7 +41,7 @@ export function CandidateReview({ jobTitle, candidates }: Props) {
   const comparing = candidates.filter((c) => selected.includes(c.userId));
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] pt-16">
+    <main className="min-h-screen bg-[#F7F7F3] pt-16">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <header className="mb-8">
           <p className="text-sm text-slate-500">Candidates for</p>
@@ -68,7 +68,7 @@ export function CandidateReview({ jobTitle, candidates }: Props) {
             {comparing.length >= 2 && (
               <section className="mb-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-6">
                 <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
-                  <Scale size={15} className="text-[#1a56ff]" aria-hidden />
+                  <Scale size={15} className="text-[#0B0B0C]" aria-hidden />
                   Side-by-side comparison
                 </h2>
                 <table className="w-full min-w-[520px] text-sm">
@@ -130,7 +130,7 @@ export function CandidateReview({ jobTitle, candidates }: Props) {
                       <input
                         type="checkbox"
                         aria-label={`Compare ${candidate.name}`}
-                        className="mt-1.5 h-4 w-4 accent-[#1a56ff]"
+                        className="mt-1.5 h-4 w-4 accent-[#0B0B0C]"
                         checked={selected.includes(candidate.userId)}
                         onChange={(e) =>
                           setSelected((prev) =>
@@ -213,7 +213,7 @@ export function CandidateReview({ jobTitle, candidates }: Props) {
                         onClick={() => void setStatus(candidate.applicationId, status)}
                         className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium capitalize transition-colors disabled:opacity-50 ${
                           candidate.status === status
-                            ? "bg-[#1a56ff] text-white"
+                            ? "bg-[#0B0B0C] text-white"
                             : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                         }`}
                       >

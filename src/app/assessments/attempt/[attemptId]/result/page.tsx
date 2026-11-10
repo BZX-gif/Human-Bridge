@@ -46,7 +46,7 @@ export default async function ResultPage({
 
   if (!result) {
     return (
-      <main className="min-h-screen bg-[#f8fafc] pt-16">
+      <main className="min-h-full bg-paper-2">
         <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
           <EmptyState
             title="This attempt has not been evaluated yet"
@@ -63,15 +63,15 @@ export default async function ResultPage({
   const readyState = attempt.status === "passed";
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] pt-16">
+    <main className="min-h-full bg-paper-2">
       {/* Headline */}
-      <div className="border-b border-slate-100 bg-white">
+      <div className="border-b border-line bg-paper">
         <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[#1a56ff]">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-ink">
             Assessment complete
           </p>
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{blueprint.title}</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-ink sm:text-3xl">{blueprint.title}</h1>
+          <p className="mt-1 text-sm text-muted">
             Attempt {attempt.attemptNumber} · version {attempt.blueprintVersion} ·{" "}
             {attempt.completedAt
               ? new Date(attempt.completedAt).toLocaleDateString()
@@ -80,30 +80,30 @@ export default async function ResultPage({
 
           <div className="mt-6 flex flex-wrap items-end gap-8">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">
                 Human Bridge Readiness
               </p>
-              <p className="mt-1 text-5xl font-black tabular-nums text-slate-900">
+              <p className="mt-1 text-5xl font-black tabular-nums text-ink">
                 {result.readinessScore}
-                <span className="text-2xl font-bold text-slate-300"> / 100</span>
+                <span className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-faint"> / 100</span>
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">
                 Overall score
               </p>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-slate-700">
+              <p className="mt-1 font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] tabular-nums text-graphite">
                 {result.overallScore}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {readyState ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-moss-soft px-3 py-1.5 text-xs font-semibold text-moss">
                   <CheckCircle2 size={13} aria-hidden />
                   Meets the bar for this role
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-ochre-soft px-3 py-1.5 text-xs font-semibold text-ochre">
                   <XCircle size={13} aria-hidden />
                   Not yet ready for this role
                 </span>
@@ -117,9 +117,9 @@ export default async function ResultPage({
       <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
         {/* AI availability — stated honestly */}
         {!aiAvailable && (
-          <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <Bot size={16} className="mt-0.5 shrink-0 text-amber-600" aria-hidden />
-            <div className="text-sm text-amber-900">
+          <div className="flex items-start gap-3 rounded-lg border border-ochre/20 bg-ochre-soft p-4">
+            <Bot size={16} className="mt-0.5 shrink-0 text-ochre" aria-hidden />
+            <div className="text-sm text-ochre">
               <p className="font-semibold">AI evaluation unavailable</p>
               <p className="mt-1 leading-relaxed">
                 No AI provider is configured, so your written and practical work was scored using
@@ -132,19 +132,19 @@ export default async function ResultPage({
         )}
 
         {/* Why this result */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+        <section className="rounded-lg border border-line bg-paper p-6">
+          <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-ink">
             Why this result
           </h2>
           <ul className="space-y-2.5">
             {result.failReasons.map((reason) => (
-              <li key={reason} className="flex gap-2.5 text-sm text-slate-700">
+              <li key={reason} className="flex gap-2.5 text-sm text-graphite">
                 <XCircle size={15} className="mt-0.5 shrink-0 text-red-500" aria-hidden />
                 {reason}
               </li>
             ))}
             {result.passReasons.map((reason) => (
-              <li key={reason} className="flex gap-2.5 text-sm text-slate-700">
+              <li key={reason} className="flex gap-2.5 text-sm text-graphite">
                 <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-green-500" aria-hidden />
                 {reason}
               </li>
@@ -153,34 +153,34 @@ export default async function ResultPage({
         </section>
 
         {/* Section breakdown */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+        <section className="rounded-lg border border-line bg-paper p-6">
+          <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-ink">
             Section breakdown
           </h2>
           <div className="space-y-3">
             {result.sectionScores.map((section) => (
               <div key={section.sectionKey}>
                 <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
-                  <span className="font-medium text-slate-800">{section.title}</span>
-                  <span className="shrink-0 tabular-nums text-slate-500">
+                  <span className="font-medium text-ink">{section.title}</span>
+                  <span className="shrink-0 tabular-nums text-muted">
                     {section.evaluated ? `${section.score} / 100` : "Not evaluated"}
-                    <span className="ml-2 text-xs text-slate-400">{section.weight}% weight</span>
+                    <span className="ml-2 text-xs text-faint">{section.weight}% weight</span>
                   </span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-2 overflow-hidden rounded-full bg-paper-3">
                   <div
                     className={`h-full rounded-full ${
                       section.score >= 75
-                        ? "bg-green-500"
+                        ? "bg-moss-soft0"
                         : section.score >= 55
-                          ? "bg-amber-500"
+                          ? "bg-ochre-soft0"
                           : "bg-red-400"
                     }`}
                     style={{ width: `${section.evaluated ? section.score : 0}%` }}
                   />
                 </div>
                 {section.notes && (
-                  <p className="mt-1 text-xs text-amber-700">{section.notes}</p>
+                  <p className="mt-1 text-xs text-ochre">{section.notes}</p>
                 )}
               </div>
             ))}
@@ -188,25 +188,25 @@ export default async function ResultPage({
         </section>
 
         {/* Per-skill scores */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-1 text-sm font-bold uppercase tracking-wide text-slate-900">
+        <section className="rounded-lg border border-line bg-paper p-6">
+          <h2 className="mb-1 text-sm font-bold uppercase tracking-wide text-ink">
             Skill scores
           </h2>
-          <p className="mb-4 text-xs text-slate-500">
+          <p className="mb-4 text-xs text-muted">
             Not one number. Each skill is scored separately from the evidence that measured it.
           </p>
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-line">
             {result.skillScores.map((skill) => (
               <li key={skill.skillSlug} className="flex flex-wrap items-center gap-3 py-3">
-                <span className="min-w-[140px] flex-1 text-sm font-medium capitalize text-slate-800">
+                <span className="min-w-[140px] flex-1 text-sm font-medium capitalize text-ink">
                   {skill.skillSlug.replace(/-/g, " ")}
                 </span>
-                <span className="w-10 text-right text-sm font-bold tabular-nums text-slate-900">
+                <span className="w-10 text-right text-sm font-bold tabular-nums text-ink">
                   {skill.score}
                 </span>
                 <LevelBadge level={SKILL_LEVEL_LABELS[skill.level]} />
                 <ConfidenceBadge confidence={skill.confidence} />
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[11px] text-faint">
                   Evidence: {skill.evidenceKinds.join(", ")}
                 </span>
               </li>
@@ -216,35 +216,35 @@ export default async function ResultPage({
 
         {/* Strengths / improvements */}
         <div className="grid gap-6 md:grid-cols-2">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
+          <section className="rounded-lg border border-line bg-paper p-6">
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
               <TrendingUp size={15} className="text-green-500" aria-hidden />
               Your strongest skills
             </h2>
             <ul className="space-y-2">
               {strongest.map((s) => (
                 <li key={s.skillSlug} className="flex justify-between text-sm">
-                  <span className="capitalize text-slate-700">
+                  <span className="capitalize text-graphite">
                     {s.skillSlug.replace(/-/g, " ")}
                   </span>
-                  <span className="font-bold tabular-nums text-slate-900">{s.score}</span>
+                  <span className="font-bold tabular-nums text-ink">{s.score}</span>
                 </li>
               ))}
             </ul>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
+          <section className="rounded-lg border border-line bg-paper p-6">
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
               <TrendingDown size={15} className="text-amber-500" aria-hidden />
               Skills to improve
             </h2>
             <ul className="space-y-2">
               {weakest.map((s) => (
                 <li key={s.skillSlug} className="flex justify-between text-sm">
-                  <span className="capitalize text-slate-700">
+                  <span className="capitalize text-graphite">
                     {s.skillSlug.replace(/-/g, " ")}
                   </span>
-                  <span className="font-bold tabular-nums text-slate-900">{s.score}</span>
+                  <span className="font-bold tabular-nums text-ink">{s.score}</span>
                 </li>
               ))}
             </ul>
@@ -253,16 +253,16 @@ export default async function ResultPage({
 
         {/* Evaluator feedback */}
         {evaluations.filter((e) => e.feedback).length > 0 && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+          <section className="rounded-lg border border-line bg-paper p-6">
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-ink">
               Evaluator feedback
             </h2>
             <div className="space-y-4">
               {evaluations
                 .filter((e) => e.feedback)
                 .map((evaluation) => (
-                  <div key={evaluation.id} className="rounded-xl bg-slate-50 p-4">
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <div key={evaluation.id} className="rounded-md bg-paper-2 p-4">
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
                       {evaluation.evaluatorType === "ai"
                         ? "AI evaluation"
                         : evaluation.evaluatorType === "human"
@@ -270,11 +270,11 @@ export default async function ResultPage({
                           : "Deterministic evaluation"}
                       {evaluation.confidence && ` · ${evaluation.confidence} confidence`}
                     </p>
-                    <p className="text-sm leading-relaxed text-slate-700">{evaluation.feedback}</p>
+                    <p className="text-sm leading-relaxed text-graphite">{evaluation.feedback}</p>
                     {Array.isArray(evaluation.gaps) && evaluation.gaps.length > 0 && (
                       <ul className="mt-3 space-y-1">
                         {(evaluation.gaps as string[]).slice(0, 6).map((gap) => (
-                          <li key={gap} className="flex gap-2 text-xs text-slate-600">
+                          <li key={gap} className="flex gap-2 text-xs text-muted">
                             <AlertTriangle size={11} className="mt-0.5 shrink-0 text-amber-500" aria-hidden />
                             {gap}
                           </li>
@@ -288,20 +288,20 @@ export default async function ResultPage({
         )}
 
         {/* Evidence collected */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
-            <BadgeCheck size={15} className="text-[#1a56ff]" aria-hidden />
+        <section className="rounded-lg border border-line bg-paper p-6">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
+            <BadgeCheck size={15} className="text-ink" aria-hidden />
             Evidence collected
           </h2>
           <ul className="space-y-2">
             {result.evidenceCollected.map((evidence) => (
-              <li key={evidence} className="flex gap-2 text-sm text-slate-700">
+              <li key={evidence} className="flex gap-2 text-sm text-graphite">
                 <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-green-500" aria-hidden />
                 {evidence}
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-4 text-xs text-muted">
             This evidence is now recorded on your Skill Passport with the verification status{" "}
             <strong>ASSESSED</strong>.
           </p>
@@ -319,7 +319,7 @@ export default async function ResultPage({
           {weakest[0] && (
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100"
+              className="inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-muted hover:bg-paper-3"
             >
               Improve {weakest[0].skillSlug.replace(/-/g, " ")}
             </Link>

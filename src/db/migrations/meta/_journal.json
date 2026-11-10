@@ -15,6 +15,13 @@
       "when": 1788672420095,
       "tag": "0001_skills_taxonomy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792000000000,
+      "tag": "0002_career_os",
+      "breakpoints": true
     }
   ]
 }

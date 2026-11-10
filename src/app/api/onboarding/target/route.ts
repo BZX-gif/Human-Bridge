@@ -5,6 +5,7 @@ import { careers, users } from "@/db/schema";
 import { ApiError, handleRoute, ok } from "@/lib/api/response";
 import { requireUser } from "@/lib/auth/session";
 import { refreshPassport } from "@/lib/services/skill-service";
+import { ensureRoadmapForUser } from "@/lib/services/roadmap-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +32,9 @@ export async function POST(request: Request) {
       .where(eq(users.id, user.id));
 
     await refreshPassport(user.id);
-    return ok({ targetCareerId: career.id });
+    // Choosing a career creates the roadmap: the product must not leave the
+    // user with a target and no plan.
+    const roadmap = await ensureRoadmapForUser(user.id, career.id);
+    return ok({ targetCareerId: career.id, roadmapId: roadmap.roadmapId });
   });
 }

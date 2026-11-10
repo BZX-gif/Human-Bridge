@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import {
   assessmentBlueprints,
   careerSkills,
+  careerTracks,
   careers,
   learningResources,
   skills,
@@ -128,6 +129,58 @@ export async function getLearningPath(
         free: r.free,
         isDemo: r.isDemo,
       })),
+    };
+  });
+}
+
+export interface CareerSummary {
+  id: number;
+  name: string;
+  slug: string;
+  tagline: string | null;
+  description: string | null;
+  demandLevel: string | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryUnit: string | null;
+  experienceLevel: string | null;
+  trackName: string | null;
+  trackSlug: string | null;
+  skillCount: number;
+  essentialCount: number;
+  isDemo: boolean;
+}
+
+/** Careers with the few facts the explorer actually needs. One query per table. */
+export async function listCareerSummaries(): Promise<CareerSummary[]> {
+  const db = await getDb();
+  const [careerRows, requirementRows] = await Promise.all([
+    db
+      .select({ career: careers, trackName: careerTracks.name, trackSlug: careerTracks.slug })
+      .from(careers)
+      .leftJoin(careerTracks, eq(careerTracks.id, careers.trackId))
+      .orderBy(careers.name),
+    db.select({ careerId: careerSkills.careerId, importance: careerSkills.importance }).from(careerSkills),
+  ]);
+
+  return careerRows.map(({ career, trackName, trackSlug }) => {
+    const requirements = requirementRows.filter((row) => row.careerId === career.id);
+    return {
+      id: career.id,
+      name: career.name,
+      slug: career.slug,
+      tagline: career.tagline,
+      description: career.description,
+      demandLevel: career.demandLevel,
+      salaryMin: career.salaryMin,
+      salaryMax: career.salaryMax,
+      salaryUnit: career.salaryUnit,
+      experienceLevel: career.experienceLevel,
+      trackName,
+      trackSlug,
+      skillCount: requirements.length,
+      essentialCount: requirements.filter((row) => row.importance === "essential").length,
+      isDemo: career.isDemo,
     };
   });
 }

@@ -77,10 +77,10 @@ export function DefenseRound({ attemptId, questions }: Props) {
 
   if (!question) {
     return (
-      <main className="min-h-screen bg-[#f8fafc] pt-16">
+      <main className="min-h-full bg-paper-2">
         <div className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-6">
-          <h1 className="text-2xl font-bold text-slate-900">Defense round complete</h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-ink">Defense round complete</h1>
+          <p className="mt-2 text-sm text-muted">
             Your answers have been scored on the server and folded into your final result.
           </p>
           <div className="mt-6">
@@ -95,14 +95,14 @@ export function DefenseRound({ attemptId, questions }: Props) {
 
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] pt-16">
+    <main className="min-h-full bg-paper-2">
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
         <header className="mb-6">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[#1a56ff]">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-ink">
             Defense round
           </p>
-          <h1 className="text-2xl font-bold text-slate-900">Explain your own work</h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-ink">Explain your own work</h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
             These questions were generated from what you actually submitted. There is nothing to
             revise — we are checking that you understand and can defend your own decisions.
           </p>
@@ -115,31 +115,31 @@ export function DefenseRound({ attemptId, questions }: Props) {
               <div
                 key={i}
                 className={`h-1.5 flex-1 rounded-full ${
-                  i < index ? "bg-[#1a56ff]" : i === index ? "bg-[#1a56ff]/40" : "bg-slate-200"
+                  i < index ? "bg-ink" : i === index ? "bg-ink/40" : "bg-paper-4"
                 }`}
               />
             ))}
           </div>
-          <span className="shrink-0 text-xs text-slate-500">
+          <span className="shrink-0 text-xs text-muted">
             {index + 1} of {pending.length}
           </span>
         </div>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-6">
+        <article className="rounded-lg border border-line bg-paper p-6">
           {question.sourceExcerpt && (
-            <blockquote className="mb-5 rounded-xl border-l-2 border-slate-300 bg-slate-50 p-4">
-              <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <blockquote className="mb-5 rounded-md border-l-2 border-line-strong bg-paper-2 p-4">
+              <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
                 <Quote size={11} aria-hidden />
                 From your submission
               </p>
-              <p className="font-mono text-xs leading-relaxed text-slate-600">
+              <p className="font-mono text-xs leading-relaxed text-muted">
                 {question.sourceExcerpt}
               </p>
             </blockquote>
           )}
 
-          <h2 className="flex gap-2 text-base font-semibold leading-relaxed text-slate-900">
-            <MessageSquareQuote size={18} className="mt-0.5 shrink-0 text-[#1a56ff]" aria-hidden />
+          <h2 className="flex gap-2 text-base font-semibold leading-relaxed text-ink">
+            <MessageSquareQuote size={18} className="mt-0.5 shrink-0 text-ink" aria-hidden />
             {question.question}
           </h2>
 
@@ -149,17 +149,17 @@ export function DefenseRound({ attemptId, questions }: Props) {
           <textarea
             id="defense-answer"
             rows={9}
-            className="mt-5 w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-[#1a56ff] focus:outline-none focus:ring-2 focus:ring-[#1a56ff]/20"
+            className="mt-5 w-full rounded-md border border-line px-3.5 py-3 text-sm leading-relaxed text-ink placeholder:text-faint focus:border-ink focus:outline-none focus:ring-2 focus:ring-[#0B0B0C]/20"
             placeholder="Answer in your own words. Reference the specifics of what you did."
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
           />
-          <p className="mt-1.5 text-xs text-slate-400">
+          <p className="mt-1.5 text-xs text-faint">
             {answer.trim().split(/\s+/).filter(Boolean).length} words
           </p>
 
           {error && (
-            <p role="alert" className="mt-3 text-xs text-red-600">
+            <p role="alert" className="mt-3 text-xs text-rust">
               {error}
             </p>
           )}
@@ -175,7 +175,7 @@ export function DefenseRound({ attemptId, questions }: Props) {
           </div>
         </article>
 
-        <p className="mt-4 text-center text-xs text-slate-400">
+        <p className="mt-4 text-center text-xs text-faint">
           Answers are scored on the server. You cannot return to a question once submitted.
         </p>
       </div>

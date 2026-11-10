@@ -1,16 +1,16 @@
 import type { ReactNode } from "react";
-import { AlertCircle, Inbox, Loader2 } from "lucide-react";
+import { AlertTriangle, Inbox, Loader2 } from "lucide-react";
 import { Button } from "./Button";
 
-export function LoadingState({ label = "Loading..." }: { label?: string }) {
+export function LoadingState({ label = "Loading…" }: { label?: string }) {
   return (
     <div
       role="status"
       aria-live="polite"
-      className="flex flex-col items-center justify-center gap-3 py-16 text-slate-500"
+      className="flex flex-col items-center justify-center gap-3 py-20 text-muted"
     >
-      <Loader2 size={22} className="animate-spin" aria-hidden />
-      <p className="text-sm">{label}</p>
+      <Loader2 size={19} className="animate-spin" aria-hidden />
+      <p className="text-[12.5px]">{label}</p>
     </div>
   );
 }
@@ -27,12 +27,14 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-red-100 bg-red-50/50 py-12 px-6 text-center"
+      className="flex flex-col items-start gap-3 rounded-lg border border-rust/20 bg-rust-soft/60 px-5 py-5 sm:flex-row sm:items-center sm:justify-between"
     >
-      <AlertCircle size={22} className="text-red-500" aria-hidden />
-      <div>
-        <p className="font-semibold text-slate-900">{title}</p>
-        <p className="mt-1 max-w-md text-sm text-slate-600">{message}</p>
+      <div className="flex items-start gap-3">
+        <AlertTriangle size={17} className="mt-0.5 shrink-0 text-rust" aria-hidden />
+        <div>
+          <p className="text-[13px] font-medium text-ink">{title}</p>
+          <p className="mt-1 max-w-lg text-[12.5px] leading-relaxed text-graphite">{message}</p>
+        </div>
       </div>
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry}>
@@ -47,19 +49,39 @@ export function EmptyState({
   title,
   message,
   action,
+  icon,
 }: {
   title: string;
   message: string;
   action?: ReactNode;
+  icon?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 py-14 px-6 text-center">
-      <Inbox size={22} className="text-slate-400" aria-hidden />
+    <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-line-strong bg-paper px-6 py-16 text-center">
+      <span className="flex h-10 w-10 items-center justify-center rounded-md border border-line bg-paper-2 text-faint">
+        {icon ?? <Inbox size={18} aria-hidden />}
+      </span>
       <div>
-        <p className="font-semibold text-slate-900">{title}</p>
-        <p className="mt-1 max-w-md text-sm text-slate-500">{message}</p>
+        <p className="font-display text-[22px] leading-tight text-ink">{title}</p>
+        <p className="mx-auto mt-1.5 max-w-sm text-[12.5px] leading-relaxed text-muted">{message}</p>
       </div>
       {action}
+    </div>
+  );
+}
+
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={`skeleton ${className ?? "h-4 w-full"}`} aria-hidden />;
+}
+
+export function SkeletonCard() {
+  return (
+    <div className="rounded-lg border border-line bg-paper p-5">
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="mt-4 h-6 w-2/3" />
+      <Skeleton className="mt-2 h-3 w-full" />
+      <Skeleton className="mt-2 h-3 w-4/5" />
+      <Skeleton className="mt-5 h-1.5 w-full" />
     </div>
   );
 }

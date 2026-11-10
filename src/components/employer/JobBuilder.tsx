@@ -297,7 +297,7 @@ export function JobBuilder({ onClose, onCreated }: Props) {
               <label className="flex items-start gap-3 rounded-xl bg-slate-50 p-4 text-sm">
                 <input
                   type="checkbox"
-                  className="mt-0.5 h-4 w-4 accent-[#1a56ff]"
+                  className="mt-0.5 h-4 w-4 accent-[#0B0B0C]"
                   checked={requireHumanReview}
                   onChange={(e) => setRequireHumanReview(e.target.checked)}
                 />
@@ -349,7 +349,7 @@ export function JobBuilder({ onClose, onCreated }: Props) {
 }
 
 const inputClass =
-  "w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#1a56ff] focus:outline-none focus:ring-2 focus:ring-[#1a56ff]/20";
+  "w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0B0B0C] focus:outline-none focus:ring-2 focus:ring-[#0B0B0C]/20";
 
 function Field({
   label,

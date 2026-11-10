@@ -1,113 +1,140 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Briefcase, ChevronRight, TrendingUp } from "lucide-react";
-import { listCareers } from "@/lib/services/career-service";
-import { isDatabaseConfigured } from "@/db";
+import { ArrowRight, Compass, ShieldCheck, Target } from "lucide-react";
+import { listCareerSummaries, type CareerSummary } from "@/lib/services/career-service";
+import { getCurrentUser } from "@/lib/auth/session";
+import { CareerExplorer } from "@/components/careers/CareerExplorer";
 import { EmptyState } from "@/components/ui/States";
+import { ButtonLink } from "@/components/ui/Button";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Explore careers — Human Bridge",
+  title: "Explore careers",
   description:
-    "Browse careers, see the skills each role actually requires, and find the path from where you are to employment.",
-};
-
-const DEMAND_LABELS: Record<string, { label: string; color: string; dot: string }> = {
-  very_high: { label: "Very high demand", color: "text-green-700", dot: "bg-green-500" },
-  high: { label: "High demand", color: "text-blue-700", dot: "bg-blue-500" },
-  moderate: { label: "Moderate demand", color: "text-amber-700", dot: "bg-amber-500" },
-  low: { label: "Low demand", color: "text-slate-600", dot: "bg-slate-400" },
+    "Understand what careers actually require: the daily work, the skills, the entry points and how to build evidence before you apply.",
 };
 
 export default async function CareersPage() {
-  if (!isDatabaseConfigured()) {
-    return (
-      <main className="min-h-screen bg-[#f8fafc] pt-16">
-        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
-          <EmptyState
-            title="Database not configured"
-            message="Set DATABASE_URL and run npm run db:seed to load the career catalogue."
-          />
-        </div>
-      </main>
-    );
+  const user = await getCurrentUser();
+  let careers: CareerSummary[] = [];
+  let unavailable = false;
+
+  try {
+    careers = await listCareerSummaries();
+  } catch {
+    unavailable = true;
   }
 
-  const careers = await listCareers();
-
   return (
-    <main className="min-h-screen bg-[#f8fafc] pt-16">
-      <div className="border-b border-slate-100 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#1a56ff]">
-            Career explorer
-          </p>
-          <h1 className="max-w-2xl text-4xl font-bold tracking-tight text-slate-900">
-            Start from the role. Work backwards to the skills.
-          </h1>
-          <p className="mt-4 max-w-2xl text-slate-600">
-            Each career here is defined by a structured set of skills with required levels. Pick a
-            target and Human Bridge will show you your gap and how to prove you have closed it.
-          </p>
+    <main id="main-content" className="bg-paper pt-16">
+      <section className="border-b border-line">
+        <div className="hb-container py-14 sm:py-20">
+          <div className="grid gap-10 lg:grid-cols-[1.4fr_0.8fr] lg:items-end">
+            <div>
+              <p className="eyebrow">Career explorer</p>
+              <h1 className="display-lg mt-4 max-w-3xl">
+                Start with the work.
+                <br />
+                Then choose the title.
+              </h1>
+              <p className="lede mt-5">
+                A job title tells you very little about what a person actually does all day. Each
+                path here is described by its real skill requirements, the work, the entry point and
+                the evidence you would need to show.
+              </p>
+            </div>
+            <div className="border-l-0 border-line lg:border-l lg:pl-8">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-faint">
+                A better way to choose
+              </p>
+              <ul className="mt-4 space-y-3">
+                {[
+                  "Read the day-to-day work before the salary.",
+                  "Check the essential skills, not the full wishlist.",
+                  "Ask what evidence you could build in 90 days.",
+                ].map((item, index) => (
+                  <li key={item} className="flex gap-3 text-[12.5px] leading-relaxed text-graphite">
+                    <span className="font-display text-lg leading-none text-faint">
+                      0{index + 1}
+                    </span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        {careers.length === 0 ? (
+      <section className="hb-container py-8 sm:py-10">
+        {unavailable ? (
           <EmptyState
-            title="No careers loaded"
-            message="Run npm run db:seed to populate the career catalogue."
+            title="The career catalogue is unavailable"
+            message="Human Bridge could not reach its database. The rest of the product still works; please try again shortly."
+            action={<ButtonLink href="/" variant="secondary">Back to home</ButtonLink>}
+          />
+        ) : careers.length === 0 ? (
+          <EmptyState
+            title="No careers loaded yet"
+            message="Run the catalogue seed to populate career paths."
           />
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {careers.map((career) => {
-              const demand = DEMAND_LABELS[career.demandLevel ?? "moderate"] ?? DEMAND_LABELS.moderate;
-              return (
-                <li key={career.id}>
-                  <Link
-                    href={`/careers/${career.slug}`}
-                    className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-slate-300"
-                  >
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <h2 className="font-bold text-slate-900">{career.name}</h2>
-                      <ChevronRight size={16} className="mt-0.5 shrink-0 text-slate-300" aria-hidden />
-                    </div>
-                    <p className="mb-4 flex-1 text-sm leading-relaxed text-slate-600">
-                      {career.description}
-                    </p>
-                    <dl className="space-y-1.5 text-xs text-slate-500">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`h-1.5 w-1.5 rounded-full ${demand.dot}`} aria-hidden />
-                        <dd className={demand.color}>{demand.label}</dd>
-                      </div>
-                      {career.salaryMin !== null && career.salaryMax !== null && (
-                        <div className="flex items-center gap-1.5">
-                          <TrendingUp size={12} aria-hidden />
-                          <dd>
-                            {career.salaryMin}–{career.salaryMax} {career.salaryUnit ?? "LPA"}
-                          </dd>
-                        </div>
-                      )}
-                      {career.experienceLevel && (
-                        <div className="flex items-center gap-1.5">
-                          <Briefcase size={12} aria-hidden />
-                          <dd>{career.experienceLevel}</dd>
-                        </div>
-                      )}
-                    </dl>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <CareerExplorer
+            careers={careers}
+            signedIn={Boolean(user)}
+            targetCareerId={user?.targetCareerId ?? null}
+          />
         )}
+      </section>
 
-        <p className="mt-8 text-xs leading-relaxed text-slate-500">
-          Salary and demand figures are indicative market context for orientation only. They are
-          not offers, guarantees or predictions about your outcome.
-        </p>
-      </div>
+      <section className="border-t border-line bg-paper-2">
+        <div className="hb-container grid gap-px overflow-hidden py-14 sm:grid-cols-3 sm:py-16">
+          {[
+            {
+              icon: Compass,
+              title: "Honest descriptions",
+              body: "We describe the work and its constraints. We do not dress a role up to make it sound easy or glamorous.",
+            },
+            {
+              icon: Target,
+              title: "Requirements, not wishlists",
+              body: "Skills are graded by importance and required level, so you can tell what is essential from what is merely useful.",
+            },
+            {
+              icon: ShieldCheck,
+              title: "No promised outcomes",
+              body: "Career information here is orientation. No salary, demand figure or roadmap is a guarantee of a job.",
+            },
+          ].map((item) => (
+            <div key={item.title} className="border-line sm:border-l sm:px-7 sm:first:border-l-0 sm:first:pl-0">
+              <item.icon size={18} strokeWidth={1.5} className="text-ink" aria-hidden />
+              <h2 className="mt-4 text-[13.5px] font-semibold text-ink">{item.title}</h2>
+              <p className="mt-2 text-[12.5px] leading-relaxed text-muted">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="hb-container py-14 sm:py-20">
+        <div className="flex flex-col gap-6 rounded-lg border border-line bg-ink px-6 py-8 text-paper sm:flex-row sm:items-center sm:justify-between sm:px-9">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+              Ready to commit to a direction?
+            </p>
+            <p className="mt-2 max-w-xl font-display text-[clamp(1.6rem,2.6vw,2.2rem)] leading-tight">
+              Choose one career and Human Bridge will build the roadmap around its real requirements.
+            </p>
+          </div>
+          <Link
+            href={user ? "/journey" : "/signup"}
+            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-md bg-paper px-5 text-[13px] font-medium text-ink transition-colors hover:bg-paper-3"
+          >
+            {user ? "Open my journey" : "Create a free account"}
+            <ArrowRight size={15} aria-hidden />
+          </Link>
+        </div>
+      </section>
     </main>
   );
 }

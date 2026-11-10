@@ -192,16 +192,16 @@ export function AssessmentWorkspace({ blueprint, attemptId, dataset, scenario }:
   const showDataset = Boolean(section.config?.datasetKey);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-32">
+    <div className="min-h-full bg-paper-2 pb-32">
       {/* Sticky workspace header */}
-      <header className="sticky top-16 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <header className="sticky top-16 z-30 border-b border-line bg-paper/95 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[#1a56ff]">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-ink">
                 Work simulation
               </p>
-              <h1 className="truncate text-sm font-bold text-slate-900 sm:text-base">
+              <h1 className="truncate text-sm font-bold text-ink sm:text-base">
                 {blueprint.title}
               </h1>
             </div>
@@ -210,8 +210,8 @@ export function AssessmentWorkspace({ blueprint, attemptId, dataset, scenario }:
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold tabular-nums",
                   remainingSeconds < 600
-                    ? "bg-red-50 text-red-700"
-                    : "bg-slate-100 text-slate-600",
+                    ? "bg-rust-soft text-rust"
+                    : "bg-paper-3 text-muted",
                 )}
                 role="timer"
                 aria-live="off"
@@ -219,7 +219,7 @@ export function AssessmentWorkspace({ blueprint, attemptId, dataset, scenario }:
                 <Clock size={13} aria-hidden />
                 {formatTime(remainingSeconds)}
               </span>
-              <span className="hidden text-xs text-slate-400 sm:inline">
+              <span className="hidden text-xs text-faint sm:inline">
                 {saving ? "Saving..." : savedAt ? `Saved ${formatClock(savedAt)}` : "Not saved yet"}
               </span>
             </div>
@@ -234,10 +234,10 @@ export function AssessmentWorkspace({ blueprint, attemptId, dataset, scenario }:
                 onClick={() => void goToSection(i)}
                 aria-current={i === sectionIndex ? "step" : undefined}
                 className={cn(
-                  "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a56ff]",
+                  "shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B0B0C]",
                   i === sectionIndex
-                    ? "bg-[#1a56ff] text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                    ? "bg-ink text-white"
+                    : "bg-paper-3 text-muted hover:bg-paper-4",
                 )}
               >
                 {i + 1}. {s.title}
@@ -251,13 +251,13 @@ export function AssessmentWorkspace({ blueprint, attemptId, dataset, scenario }:
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {/* Scenario brief */}
         {sectionIndex === 0 && (
-          <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-900">
+          <section className="mb-6 rounded-lg border border-line bg-paper p-6">
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink">
               The brief
             </h2>
-            <div className="prose-sm max-w-none space-y-3 text-sm leading-relaxed text-slate-600">
+            <div className="prose-sm max-w-none space-y-3 text-sm leading-relaxed text-muted">
               {scenario.split("\n\n").map((para, i) => (
-                <p key={i} className={para.startsWith(">") ? "border-l-2 border-[#1a56ff] pl-4 italic" : ""}>
+                <p key={i} className={para.startsWith(">") ? "border-l-2 border-ink pl-4 italic" : ""}>
                   {para.replace(/^>\s?/, "").replace(/\*\*/g, "")}
                 </p>
               ))}
@@ -268,14 +268,14 @@ export function AssessmentWorkspace({ blueprint, attemptId, dataset, scenario }:
         {/* Section header */}
         <div className="mb-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-xl font-bold text-slate-900">{section.title}</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="text-xl font-bold text-ink">{section.title}</h2>
+            <p className="text-xs text-muted">
               {answeredInSection} of {section.items.length} answered · worth {section.weight}% of
               your result
             </p>
           </div>
           {section.instructions && (
-            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
               {section.instructions}
             </p>
           )}
@@ -292,18 +292,18 @@ export function AssessmentWorkspace({ blueprint, attemptId, dataset, scenario }:
           {section.items.map((item, index) => (
             <article
               key={item.key}
-              className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
+              className="rounded-lg border border-line bg-paper p-5 sm:p-6"
             >
               <div className="mb-3 flex items-start gap-3">
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-paper-3 text-[11px] font-bold text-muted">
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-semibold leading-relaxed text-slate-900">
+                  <h3 className="text-sm font-semibold leading-relaxed text-ink">
                     {item.prompt}
                   </h3>
                   {item.helperText && (
-                    <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted">
                       {item.helperText}
                     </p>
                   )}
@@ -332,7 +332,7 @@ export function AssessmentWorkspace({ blueprint, attemptId, dataset, scenario }:
       </main>
 
       {/* Sticky action bar */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Button
             variant="secondary"
@@ -367,7 +367,7 @@ export function AssessmentWorkspace({ blueprint, attemptId, dataset, scenario }:
           </div>
         </div>
         {isLast && (
-          <p className="border-t border-slate-100 bg-amber-50/60 px-4 py-2 text-center text-[11px] text-amber-800 sm:px-6">
+          <p className="border-t border-line bg-ochre-soft/60 px-4 py-2 text-center text-[11px] text-amber-800 sm:px-6">
             <AlertTriangle size={11} className="mr-1 inline" aria-hidden />
             After submitting you will answer defense questions generated from your own work. Your
             score is calculated on the server — nothing in this browser decides your result.

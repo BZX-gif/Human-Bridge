@@ -11,25 +11,26 @@ interface ProgressBarProps {
   showLabel?: boolean;
   animate?: boolean;
   className?: string;
+  label?: string;
 }
 
 function getAutoColor(value: number): string {
   if (value >= 75) return "green";
-  if (value >= 50) return "yellow";
+  if (value >= 40) return "yellow";
   return "red";
 }
 
 const colorClasses: Record<string, string> = {
-  blue: "bg-[#1a56ff]",
-  green: "bg-green-500",
-  yellow: "bg-yellow-500",
-  red: "bg-red-500",
+  blue: "bg-ink",
+  green: "bg-moss",
+  yellow: "bg-ochre",
+  red: "bg-rust",
 };
 
 const sizeClasses: Record<string, string> = {
-  sm: "h-1.5",
-  md: "h-2",
-  lg: "h-3",
+  sm: "h-1",
+  md: "h-1.5",
+  lg: "h-2.5",
 };
 
 export function ProgressBar({
@@ -40,6 +41,7 @@ export function ProgressBar({
   showLabel = false,
   animate = true,
   className,
+  label,
 }: ProgressBarProps) {
   const [displayed, setDisplayed] = useState(animate ? 0 : value);
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
@@ -47,20 +49,32 @@ export function ProgressBar({
 
   useEffect(() => {
     if (!animate) return;
-    const timer = setTimeout(() => setDisplayed(percentage), 100);
+    const timer = setTimeout(() => setDisplayed(percentage), 80);
     return () => clearTimeout(timer);
   }, [percentage, animate]);
 
   return (
     <div className={cn("w-full", className)}>
-      <div className={cn("w-full bg-slate-100 rounded-full overflow-hidden", sizeClasses[size])}>
+      <div
+        className={cn("w-full overflow-hidden rounded-full bg-paper-3", sizeClasses[size])}
+        role="progressbar"
+        aria-valuenow={Math.round(percentage)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={label}
+      >
         <div
-          className={cn("h-full rounded-full transition-all duration-700 ease-out", colorClasses[resolvedColor])}
+          className={cn(
+            "h-full rounded-full transition-[width] duration-700 ease-out",
+            colorClasses[resolvedColor],
+          )}
           style={{ width: animate ? `${displayed}%` : `${percentage}%` }}
         />
       </div>
       {showLabel && (
-        <span className="text-xs text-slate-500 mt-1 block text-right">{Math.round(percentage)}%</span>
+        <span className="mt-1.5 block text-right text-[11px] tabular-nums text-muted">
+          {Math.round(percentage)}%
+        </span>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
-import { ArrowRight, BookOpen } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Layers, ShieldCheck } from "lucide-react";
 import { getDb, isDatabaseConfigured } from "@/db";
 import { skillCategories, skills } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -15,21 +15,19 @@ import { ConfidenceBadge, VerificationBadge } from "@/components/assessment/Evid
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Skills — Human Bridge",
+  title: "Skills",
   description:
-    "Career tracks, the measurable skills behind every role on Human Bridge, and where your own evidence stands.",
+    "The measurable skills behind every career on Human Bridge, and where your own evidence stands.",
 };
 
 export default async function SkillsPage() {
   if (!isDatabaseConfigured()) {
     return (
-      <main className="min-h-screen bg-[#f8fafc] pt-16">
-        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
-          <EmptyState
-            title="Database not configured"
-            message="Set DATABASE_URL and run npm run db:seed to load the skill catalogue."
-          />
-        </div>
+      <main id="main-content" className="app-page">
+        <EmptyState
+          title="Skill catalogue unavailable"
+          message="The database is not configured, so the catalogue cannot be loaded. Your account data is unaffected."
+        />
       </main>
     );
   }
@@ -56,7 +54,9 @@ export default async function SkillsPage() {
 
   const user = await getCurrentUser();
   const mine = user ? await getUserSkills(user.id) : [];
-  const mineBySlug = new Map(mine.map((s) => [s.slug, s]));
+  const mineBySlug = new Map(mine.map((skill) => [skill.slug, skill]));
+  const verified = mine.filter((skill) => skill.verificationStatus !== "self_reported" && skill.score > 0);
+  const selfReported = mine.filter((skill) => skill.verificationStatus === "self_reported");
 
   const byCategory = new Map<string, typeof rows>();
   for (const row of rows) {
@@ -65,164 +65,208 @@ export default async function SkillsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] pt-16">
-      <div className="border-b border-slate-100 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#1a56ff]">
-            Skills &amp; assessments framework
-          </p>
-          <h1 className="max-w-2xl text-4xl font-bold tracking-tight text-slate-900">
+    <main id="main-content" className="app-page">
+      <header className="flex flex-col gap-5 border-b border-line pb-7 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="eyebrow">Skills</p>
+          <h1 className="mt-3 font-display text-[clamp(2.1rem,4.5vw,3rem)] leading-[1.02] tracking-[-0.02em]">
             What can you actually do?
           </h1>
-          <p className="mt-4 max-w-2xl text-slate-600">
-            Every career track here is built from measurable skills. Scores and levels come from
-            evidence — assessments, practical work, verified projects — never from a course
-            completion list.
+          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">
+            Every career here is built from measurable skills. A score or level appears only when you
+            produce evidence — an assessment, a practical task or recorded project work. Claiming a
+            skill is not the same as demonstrating it.
           </p>
-          {!user && (
-            <div className="mt-6">
-              <ButtonLink href="/signup">Sign up to track your evidence</ButtonLink>
-            </div>
-          )}
         </div>
-      </div>
+        {!user ? (
+          <ButtonLink href="/signup" size="md">
+            Track your evidence
+            <ArrowRight size={14} aria-hidden />
+          </ButtonLink>
+        ) : (
+          <ButtonLink href="/assessments" variant="secondary" size="md">
+            <ShieldCheck size={14} aria-hidden />
+            Prove a skill
+          </ButtonLink>
+        )}
+      </header>
 
-      <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6">
-        {/* Career tracks (from the database — never hardcoded) */}
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#e8edff] text-[#1a56ff]">
-                <BookOpen size={14} aria-hidden />
-              </span>
-              Career tracks
-            </h2>
-            <span className="text-xs text-slate-400">{tracks.length} tracks</span>
+      {user && (
+        <section className="mt-6 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
+          <div className="bg-paper p-4">
+            <p className="text-[9.5px] font-semibold uppercase tracking-[0.13em] text-faint">Verified skills</p>
+            <p className="mt-1 font-display text-[26px] leading-none tabular text-moss">{verified.length}</p>
+            <p className="mt-1 text-[10.5px] leading-relaxed text-muted">Assessment or employer evidence.</p>
           </div>
-          {tracks.length === 0 ? (
+          <div className="bg-paper p-4">
+            <p className="text-[9.5px] font-semibold uppercase tracking-[0.13em] text-faint">Self-reported</p>
+            <p className="mt-1 font-display text-[26px] leading-none tabular text-graphite">{selfReported.length}</p>
+            <p className="mt-1 text-[10.5px] leading-relaxed text-muted">Recorded claims, never counted as verified.</p>
+          </div>
+          <div className="bg-paper p-4">
+            <p className="text-[9.5px] font-semibold uppercase tracking-[0.13em] text-faint">Catalogue</p>
+            <p className="mt-1 font-display text-[26px] leading-none tabular text-ink">{rows.length}</p>
+            <p className="mt-1 text-[10.5px] leading-relaxed text-muted">Measurable skills across {tracks.length} tracks.</p>
+          </div>
+        </section>
+      )}
+
+      <section className="app-section">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-[15px] font-semibold text-ink">Career tracks</h2>
+            <p className="mt-1 text-[11.5px] text-muted">
+              A track is a family of roles that share a skill base. Start with the track, then narrow to a role.
+            </p>
+          </div>
+          <span className="text-[10px] uppercase tracking-[0.12em] text-faint">{tracks.length} tracks</span>
+        </div>
+
+        {tracks.length === 0 ? (
+          <div className="mt-4">
             <EmptyState
               title="No tracks loaded"
-              message="Run npm run db:seed to populate the skills taxonomy."
+              message="The skill taxonomy has not been seeded. Run the seed command to populate it."
             />
-          ) : (
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {tracks.map((track) => (
-                <li key={track.id}>
+          </div>
+        ) : (
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {tracks.map((track) => (
+              <li key={track.id}>
                   <Link
                     href={`/skills/${track.slug}`}
-                    className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-[#1a56ff]/40 hover:shadow-sm"
+                    className="group flex h-full flex-col rounded-lg border border-line bg-paper p-4 transition-colors hover:border-line-strong"
                   >
-                    <div className="mb-2 flex items-start justify-between gap-3">
-                      <h3 className="font-bold text-slate-900 group-hover:text-[#1a56ff]">
-                        {track.name}
-                      </h3>
-                      <ArrowRight
-                        size={15}
-                        className="mt-1 shrink-0 text-slate-300 transition-colors group-hover:text-[#1a56ff]"
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="text-[13px] font-semibold text-ink">{track.name}</h3>
+                      <ArrowUpRight
+                        size={13}
+                        className="mt-0.5 shrink-0 text-faint transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ink"
                         aria-hidden
                       />
                     </div>
                     {track.description && (
-                      <p className="mb-3 flex-1 text-sm leading-relaxed text-slate-600 line-clamp-3">
+                      <p className="mt-1.5 line-clamp-2 flex-1 text-[11px] leading-relaxed text-muted">
                         {track.description}
                       </p>
                     )}
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Badge variant="blue">{track.skillCount} skills</Badge>
-                      {track.difficultyLevels.map((level) => (
-                        <Badge key={level} variant="outline" size="sm" className="capitalize">
+                    <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-2.5">
+                      <span className="inline-flex items-center gap-1 text-[9.5px] text-graphite">
+                        <Layers size={9} aria-hidden />
+                        {track.skillCount} skills
+                      </span>
+                      {track.difficultyLevels.slice(0, 2).map((level) => (
+                        <span key={level} className="rounded-[3px] bg-paper-3 px-1.5 py-0.5 text-[9px] capitalize text-graphite">
                           {level}
-                        </Badge>
+                        </span>
                       ))}
                     </div>
                   </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {/* Full skill catalogue */}
-        {rows.length === 0 ? (
-          <EmptyState title="No skills loaded" message="Run npm run db:seed to populate the catalogue." />
-        ) : (
-          Array.from(byCategory.entries()).map(([category, items]) => (
-            <section key={category}>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
-                <BookOpen size={15} className="text-[#1a56ff]" aria-hidden />
-                {category}
-              </h2>
-              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((skill) => {
-                  const evidence = mineBySlug.get(skill.slug);
-                  return (
-                    <li
-                      key={skill.id}
-                      className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5"
-                    >
-                      <div className="mb-2 flex items-start justify-between gap-3">
-                        <h3 className="font-bold text-slate-900">
-                          <Link href={`/skills/${skill.slug}`} className="hover:text-[#1a56ff]">
-                            {skill.name}
-                          </Link>
-                        </h3>
-                        {evidence && evidence.score > 0 && (
-                          <span className="shrink-0 text-lg font-bold tabular-nums text-slate-900">
-                            {evidence.score}
-                          </span>
-                        )}
-                      </div>
-                      {skill.description && (
-                        <p className="mb-3 flex-1 text-sm leading-relaxed text-slate-600">
-                          {skill.description}
-                        </p>
-                      )}
-                      <div className="mb-3 flex flex-wrap gap-1.5">
-                        <Badge variant="outline" size="sm" className="capitalize">
-                          {skill.skillType.replace("_", " ")}
-                        </Badge>
-                        <Badge variant="outline" size="sm" className="capitalize">
-                          {skill.difficulty}
-                        </Badge>
-                      </div>
-                      {skill.whyEmployersWant && (
-                        <p className="mb-3 rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
-                          <strong className="font-semibold text-slate-700">
-                            Why employers want it:
-                          </strong>{" "}
-                          {skill.whyEmployersWant}
-                        </p>
-                      )}
-                      {evidence ? (
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <VerificationBadge status={evidence.verificationStatus} />
-                          <ConfidenceBadge confidence={evidence.confidence} />
-                          <span className="text-[11px] text-slate-400">
-                            {evidence.assessmentCount} assessed
-                          </span>
-                        </div>
-                      ) : (
-                        user && <p className="text-[11px] text-slate-400">No evidence yet</p>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))
+              </li>
+            ))}
+          </ul>
         )}
+        <p className="mt-2 text-[10px] text-faint">Skills are shared across tracks; counts are per track.</p>
+      </section>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center">
-          <p className="text-sm text-slate-600">
-            A skill only gets a score and a level once you produce evidence for it.
-          </p>
+      <section className="app-section">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-[15px] font-semibold text-ink">Skill catalogue</h2>
+            <p className="mt-1 text-[11.5px] text-muted">
+              Grouped by category. Open a category to see what each skill means and where you stand.
+            </p>
+          </div>
+          <ButtonLink href="/careers" variant="ghost" size="sm">
+            Browse careers
+            <ArrowRight size={12} aria-hidden />
+          </ButtonLink>
+        </div>
+
+        {rows.length === 0 ? (
           <div className="mt-4">
-            <Link href="/assessments" className="text-sm font-semibold text-[#1a56ff] hover:underline">
-              Prove a skill with a work simulation →
-            </Link>
+            <EmptyState title="No skills loaded" message="The skill catalogue is empty." />
+          </div>
+        ) : (
+          <div className="mt-4 divide-y divide-line border-y border-line">
+            {Array.from(byCategory.entries()).map(([category, items], index) => (
+              <details key={category} open={index === 0} className="group">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-3.5 marker:content-none">
+                  <span className="flex items-center gap-2 text-[12.5px] font-medium text-ink">
+                    <span className="text-[10px] text-faint transition-transform group-open:rotate-90">▸</span>
+                    {category}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.1em] text-faint">{items.length} skills</span>
+                </summary>
+                <ul className="grid gap-2 pb-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {items.map((skill) => {
+                    const evidence = mineBySlug.get(skill.slug);
+                    return (
+                      <li key={skill.id} className="rounded-md border border-line bg-paper p-3.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="text-[12px] font-medium leading-snug text-ink">
+                            <Link href={`/skills/${skill.slug}`} className="hover:underline underline-offset-4">
+                              {skill.name}
+                            </Link>
+                          </h3>
+                          {evidence && evidence.score > 0 ? (
+                            <span className="shrink-0 text-[12px] font-medium tabular text-graphite">
+                              {evidence.score}
+                            </span>
+                          ) : (
+                            <span className="shrink-0 text-[9px] text-faint">—</span>
+                          )}
+                        </div>
+                        {skill.description && (
+                          <p className="mt-1 line-clamp-2 text-[10.5px] leading-relaxed text-muted">
+                            {skill.description?.slice(0, 180)}
+                          </p>
+                        )}
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <Badge variant="outline" size="sm" className="capitalize">
+                            {skill.skillType.replace("_", " ")}
+                          </Badge>
+                          <span className="text-[9px] capitalize text-faint">{skill.difficulty}</span>
+                          {evidence ? (
+                            <>
+                              <VerificationBadge status={evidence.verificationStatus} />
+                              <ConfidenceBadge confidence={evidence.confidence} />
+                            </>
+                          ) : user ? (
+                            <span className="text-[9px] text-faint">No evidence</span>
+                          ) : null}
+                        </div>
+                        {skill.whyEmployersWant && (
+                          <p className="mt-2 border-t border-line pt-2 text-[9.5px] leading-relaxed text-faint">
+                            {skill.whyEmployersWant.slice(0, 200)}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-8 flex flex-col gap-4 rounded-lg border border-line bg-paper-2 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <ShieldCheck size={16} className="mt-0.5 shrink-0 text-graphite" aria-hidden />
+          <div>
+            <p className="text-[12.5px] font-medium text-ink">A score has to be earned.</p>
+            <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-muted">
+              Self-reported skills stay labelled. Only an assessment or employer review can create a
+              verified level, and project completion never marks a skill verified on its own.
+            </p>
           </div>
         </div>
-      </div>
+        <ButtonLink href="/assessments" variant="secondary" size="sm" className="shrink-0">
+          Work simulations
+          <ArrowRight size={12} aria-hidden />
+        </ButtonLink>
+      </section>
     </main>
   );
 }

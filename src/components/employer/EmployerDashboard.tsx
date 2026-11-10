@@ -47,7 +47,7 @@ export function EmployerDashboard({ companyName, jobs, applications }: Props) {
   const active = jobs.filter((j) => j.status === "active");
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] pt-16">
+    <main className="min-h-screen bg-[#F7F7F3] pt-16">
       {building && (
         <JobBuilder
           onClose={() => setBuilding(false)}
@@ -84,7 +84,7 @@ export function EmployerDashboard({ companyName, jobs, applications }: Props) {
 
         <section className="mb-6">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
-            <Briefcase size={15} className="text-[#1a56ff]" aria-hidden />
+            <Briefcase size={15} className="text-[#0B0B0C]" aria-hidden />
             Your jobs
           </h2>
           {jobs.length === 0 ? (
@@ -132,7 +132,7 @@ export function EmployerDashboard({ companyName, jobs, applications }: Props) {
                           key={skill.slug}
                           className={`rounded-lg border px-2 py-1 text-[11px] ${
                             skill.importance === "essential"
-                              ? "border-[#1a56ff]/30 bg-[#eef3ff] text-[#1a56ff]"
+                              ? "border-[#0B0B0C]/30 bg-[#F2F2ED] text-[#0B0B0C]"
                               : "border-slate-200 bg-slate-50 text-slate-600"
                           }`}
                         >
@@ -172,7 +172,7 @@ export function EmployerDashboard({ companyName, jobs, applications }: Props) {
                     </span>
                     <Link
                       href={`/employers/jobs/${a.jobId}/candidates`}
-                      className="text-xs font-semibold text-[#1a56ff] hover:underline"
+                      className="text-xs font-semibold text-[#0B0B0C] hover:underline"
                     >
                       Review
                     </Link>
