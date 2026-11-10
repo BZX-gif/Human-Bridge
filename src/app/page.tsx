@@ -521,14 +521,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Mentor ───────────────────────────────────────────────────────── */}
+      {/* ── Paper career guide ─────────────────────────────────────────────── */}
       <section className="border-b border-line bg-paper-2 py-12 sm:py-16">
         <div className="hb-container grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-14">
           <div>
             <p className="eyebrow">Guidance</p>
             <h2 className="display-lg mt-3">Advice that knows your actual plan.</h2>
             <p className="mt-3 max-w-[540px] text-[12.5px] leading-relaxed text-muted">
-              The mentor reads your roadmap, your recorded skills and your week — not a generic
+              Paper reads your roadmap, your recorded skills and your week — not a generic
               template. It can reduce an overloaded plan to one useful action, explain a concept, or
               point to the gap that blocks the most progress.
             </p>
@@ -545,13 +545,13 @@ export default async function HomePage() {
               ))}
             </ul>
             <ButtonLink href={user ? "/mentor" : "/signup"} variant="secondary" size="md" className="mt-5">
-              {user ? "Ask the mentor" : "Try it with your own plan"}
+              {user ? "Ask Paper" : "Try it with your own plan"}
               <ArrowRight size={13} aria-hidden />
             </ButtonLink>
           </div>
           <div className="rounded-lg border border-line bg-paper p-5 shadow-sm">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">Mentor</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">Paper</p>
               <span className="rounded-[3px] border border-line bg-paper-2 px-1.5 py-0.5 text-[9px] text-muted">Guided mode</span>
             </div>
             <div className="mt-4 space-y-3">

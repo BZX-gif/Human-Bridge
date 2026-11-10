@@ -41,7 +41,7 @@ const candidateNav: { group: string; items: NavItem[] }[] = [
       { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
       { label: "My journey", href: "/journey", icon: Map },
       { label: "Planner", href: "/planner", icon: CalendarDays },
-      { label: "Mentor", href: "/mentor", icon: Sparkles },
+      { label: "Paper", href: "/mentor", icon: Sparkles },
     ],
   },
   {

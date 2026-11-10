@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   ArrowUp,
-  Bot,
   CalendarDays,
   Info,
   Loader2,
@@ -52,6 +51,19 @@ const PROMPTS = [
   "Help me prepare for an interview",
 ];
 
+function PaperMark({ className }: { className?: string }) {
+  return (
+    <span className={cn("paper-mark", className)} aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path className="paper-mark-back" d="M6.5 5.5h9l3 3v10h-12z" />
+        <path className="paper-mark-front" d="M5 4h9l4 4v12H5z" />
+        <path className="paper-mark-fold" d="M14 4v4h4" />
+        <path className="paper-mark-line" d="M8 12h7M8 15h7" />
+      </svg>
+    </span>
+  );
+}
+
 export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -90,7 +102,7 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
       setError(
         e instanceof ApiClientError
           ? e.message
-          : "The mentor could not respond. Your plan is unchanged — please try again.",
+          : "Paper could not respond. Your plan is unchanged — please try again.",
       );
     } finally {
       setSending(false);
@@ -107,12 +119,15 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
     <div className="app-page">
       <header className="flex flex-col gap-3 border-b border-line pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="eyebrow">Mentor</p>
+          <div className="flex items-center gap-2.5">
+            <PaperMark className="paper-mark-hero" />
+            <p className="eyebrow">Paper · Your career guide</p>
+          </div>
           <h1 className="mt-3 font-display text-[clamp(2.1rem,4.5vw,3rem)] leading-[1.02] tracking-[-0.02em]">
             A thinking partner, not a fortune teller.
           </h1>
           <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">
-            Ask about your next step, a gap, a project or your week. The mentor sees your real plan
+            Ask Paper about your next step, a gap, a project or your week. It sees your real plan
             and evidence — and nothing else. It will not invent an outcome.
           </p>
         </div>
@@ -193,9 +208,7 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
                   </div>
                 ) : (
                   <div key={index} className="flex justify-start gap-2.5">
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line bg-paper-2 text-graphite">
-                      <Bot size={12} aria-hidden />
-                    </span>
+                    <PaperMark className="paper-mark-avatar mt-0.5 h-6 w-6 shrink-0 rounded-full" />
                     <div className="max-w-[88%] rounded-lg rounded-bl-[3px] border border-line bg-paper px-4 py-3">
                       <p className="whitespace-pre-line text-[12.5px] leading-[1.75] text-graphite">
                         {message.content}
@@ -241,7 +254,7 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
           >
             <div className="flex items-end gap-2">
               <label htmlFor="mentor-input" className="sr-only">
-                Ask the mentor
+                Ask Paper
               </label>
               <textarea
                 id="mentor-input"
@@ -360,7 +373,7 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
             </p>
             {summary.todaysTasks.length === 0 ? (
               <p className="mt-2 text-[11px] leading-relaxed text-muted">
-                Nothing scheduled. Ask the mentor what deserves the time.
+                Nothing scheduled. Ask Paper what deserves the time.
               </p>
             ) : (
               <ul className="mt-2 space-y-1.5">

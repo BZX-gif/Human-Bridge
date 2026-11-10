@@ -731,3 +731,87 @@ textarea.hb-input {
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Paper identity: a quiet, tactile sheet-reveal ──────────────────────── */
+.paper-mark {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: linear-gradient(145deg, #fff 0%, #f7f7f3 100%);
+  color: var(--color-graphite);
+  box-shadow: 0 2px 5px rgb(11 11 12 / 0.05), 0 1px 1px rgb(11 11 12 / 0.04);
+  perspective: 90px;
+}
+.paper-mark svg {
+  width: 20px;
+  height: 20px;
+  overflow: visible;
+}
+.paper-mark-back {
+  fill: #e8e8e1;
+  stroke: #d5d5ce;
+  stroke-width: 1;
+}
+.paper-mark-front {
+  fill: #fff;
+  stroke: currentColor;
+  stroke-width: 1.15;
+  stroke-linejoin: round;
+  transform-origin: 5px 20px;
+  animation: paper-sheet-reveal 900ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+.paper-mark-fold {
+  stroke: #c9c9c1;
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+.paper-mark-line {
+  stroke: #aaa9a1;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+}
+.paper-mark-hero {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgb(11 11 12 / 0.07), 0 1px 2px rgb(11 11 12 / 0.05);
+}
+.paper-mark-hero svg {
+  width: 23px;
+  height: 23px;
+}
+.paper-mark-avatar {
+  border-radius: 999px;
+  background: var(--color-paper-2);
+}
+.paper-mark-avatar svg {
+  width: 15px;
+  height: 15px;
+}
+@keyframes paper-sheet-reveal {
+  0% {
+    opacity: 0.65;
+    transform: rotateY(-22deg) translateY(2px);
+  }
+  65% {
+    opacity: 1;
+    transform: rotateY(4deg) translateY(-1px);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0) translateY(0);
+  }
+}
+.paper-mark-hero svg {
+  animation: paper-gentle-settle 5.5s ease-in-out 1s infinite;
+}
+@keyframes paper-gentle-settle {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-1px) rotate(-1deg); }
+}

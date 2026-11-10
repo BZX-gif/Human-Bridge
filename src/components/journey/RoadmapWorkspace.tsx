@@ -528,7 +528,7 @@ export function RoadmapWorkspace({
                                   </ul>
                                 ) : (
                                   <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
-                                    No curated resource recorded. Use the practice work, or ask the mentor
+                                    No curated resource recorded. Use the practice work, or ask Paper
                                     to explain the concept. Human Bridge does not invent links.
                                   </p>
                                 )}
