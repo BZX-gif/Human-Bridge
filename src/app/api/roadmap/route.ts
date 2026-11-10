@@ -1,6 +1,6 @@
 import { handleRoute, ok } from "@/lib/api/response";
 import { requireUser } from "@/lib/auth/session";
-import { ensureRoadmapForUser, getRoadmapForUser } from "@/lib/services/roadmap-service";
+import { ensureRoadmapForUser, getRoadmapForUser, loadRoadmapForUser } from "@/lib/services/roadmap-service";
 import { roadmapCreateSchema } from "@/lib/validation/career";
 
 export const runtime = "nodejs";
@@ -23,7 +23,8 @@ export async function POST(request: Request) {
       startingLevel: body.startingLevel,
       regenerate: body.regenerate,
     });
-    const roadmap = await getRoadmapForUser(user.id, body.careerId);
+    // Fresh read: this request may just have created the roadmap.
+    const roadmap = await loadRoadmapForUser(user.id, body.careerId);
     return ok({ ...result, roadmap }, result.created ? 201 : 200);
   });
 }

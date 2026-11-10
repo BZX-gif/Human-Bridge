@@ -70,18 +70,20 @@ export async function evaluateAttempt(
     .set({ status: "evaluating", updatedAt: new Date() })
     .where(eq(assessmentAttempts.id, attemptId));
 
-  const blueprint = await getBlueprint(String(attempt.blueprintId));
+  // Blueprint, rubrics, responses and submissions are independent — one wave.
+  const [blueprint, rubricRows, responses, submissions] = await Promise.all([
+    getBlueprint(String(attempt.blueprintId)),
+    getRubricsForBlueprint(attempt.blueprintId),
+    getAttemptResponses(attemptId),
+    getAttemptSubmissions(attemptId),
+  ]);
   const policy = blueprint.passingPolicy;
-  const rubricRows = await getRubricsForBlueprint(attempt.blueprintId);
   const rubrics = new Map<string, RubricDefinition>(
     rubricRows.map((r) => [
       r.key,
       { key: r.key, title: r.title, criteria: r.criteria as RubricDefinition["criteria"] },
     ]),
   );
-
-  const responses = await getAttemptResponses(attemptId);
-  const submissions = await getAttemptSubmissions(attemptId);
 
   const provider = getEvaluationProvider();
   const aiAvailable = provider !== null;
@@ -579,18 +581,18 @@ export async function generateDefense(
   userId: number,
 ): Promise<DefenseQuestionView[]> {
   const db = await getDb();
-  const attempt = await getOwnedAttempt(attemptId, userId);
-
-  const existing = await db
-    .select()
-    .from(assessmentDefenseQuestions)
-    .where(eq(assessmentDefenseQuestions.attemptId, attemptId))
-    .orderBy(assessmentDefenseQuestions.order);
-
-  const answered = await db
-    .select({ questionId: assessmentDefenseResponses.questionId })
-    .from(assessmentDefenseResponses)
-    .where(eq(assessmentDefenseResponses.attemptId, attemptId));
+  const [attempt, existing, answered] = await Promise.all([
+    getOwnedAttempt(attemptId, userId),
+    db
+      .select()
+      .from(assessmentDefenseQuestions)
+      .where(eq(assessmentDefenseQuestions.attemptId, attemptId))
+      .orderBy(assessmentDefenseQuestions.order),
+    db
+      .select({ questionId: assessmentDefenseResponses.questionId })
+      .from(assessmentDefenseResponses)
+      .where(eq(assessmentDefenseResponses.attemptId, attemptId)),
+  ]);
   const answeredIds = new Set(answered.map((a) => a.questionId));
 
   if (existing.length > 0) {
@@ -608,11 +610,13 @@ export async function generateDefense(
     throw new ApiError("DEFENSE_NOT_READY", "Submit your work before the defense round.");
   }
 
-  const blueprint = await getBlueprint(String(attempt.blueprintId));
+  const [blueprint, responses] = await Promise.all([
+    getBlueprint(String(attempt.blueprintId)),
+    getAttemptResponses(attemptId),
+  ]);
   const defenseSection = blueprint.sections.find((s) => s.kind === "defense");
   const maxQuestions = Number(defenseSection?.config?.maxQuestions ?? 4);
 
-  const responses = await getAttemptResponses(attemptId);
   const excerpts: SubmissionExcerpt[] = responses
     .map((r) => {
       const value = r.response.response as ResponseValue | null;

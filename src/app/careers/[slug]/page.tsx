@@ -57,17 +57,16 @@ export default async function CareerDetailPage({
 }) {
   const { slug } = await params;
 
-  let data;
-  try {
-    data = await getCareerBySlug(slug);
-  } catch {
-    notFound();
-  }
+  // Career data and session are independent — fetch together. (generateMetadata
+  // calls getCareerBySlug too; the request memo collapses it to one execution.)
+  const [data, user] = await Promise.all([
+    getCareerBySlug(slug).catch(() => null),
+    getCurrentUser(),
+  ]);
+  if (!data) notFound();
 
   const { career, requiredSkills, blueprint } = data;
-  const user = await getCurrentUser();
-  const gaps = user ? await getCareerGapForUser(career.id, user.id) : [];
-  const gapBySlug = new Map(gaps.map((gap) => [gap.slug, gap]));
+  const gapBySlug = new Map<string, Awaited<ReturnType<typeof getCareerGapForUser>>[number]>();
   const tasks = Array.isArray(career.typicalTasks) ? (career.typicalTasks as string[]) : [];
   const requirements = Array.isArray(career.typicalRequirements)
     ? (career.typicalRequirements as string[])
@@ -76,14 +75,16 @@ export default async function CareerDetailPage({
     ? (career.careerPathway as { title: string; description?: string }[])
     : [];
 
-  let preview = null;
-  let projectCatalogue: Awaited<ReturnType<typeof listProjectCatalogue>> = [];
-  try {
-    preview = await previewRoadmapForCareer(career.id, { hoursPerWeek: 6 });
-    projectCatalogue = await listProjectCatalogue(career.id);
-  } catch {
-    // The career page must still render if a secondary query fails.
-  }
+  // Gaps, preview and catalogue are independent — one wave. The page must
+  // still render if a secondary query fails, so each is guarded.
+  const [gaps, preview, projectCatalogue] = await Promise.all([
+    user ? getCareerGapForUser(career.id, user.id).catch(() => []) : Promise.resolve([]),
+    previewRoadmapForCareer(career.id, { hoursPerWeek: 6 }).catch(() => null),
+    listProjectCatalogue(career.id).catch(
+      (): Awaited<ReturnType<typeof listProjectCatalogue>> => [],
+    ),
+  ]);
+  for (const gap of gaps) gapBySlug.set(gap.slug, gap);
 
   const sortedSkills = [...requiredSkills].sort(
     (a, b) => IMPORTANCE_ORDER[a.importance] - IMPORTANCE_ORDER[b.importance],

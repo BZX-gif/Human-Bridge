@@ -21,7 +21,7 @@ import {
 import { getCurrentUser } from "@/lib/auth/session";
 import { getDb } from "@/db";
 import { careers, users } from "@/db/schema";
-import { ensureRoadmapForUser, getRoadmapForUser } from "@/lib/services/roadmap-service";
+import { ensureRoadmapForUser, getRoadmapForUser, loadRoadmapForUser } from "@/lib/services/roadmap-service";
 import { getPlannerData, startOfDay, endOfDay, addDays } from "@/lib/services/planner-service";
 import { getPortfolioForUser } from "@/lib/services/portfolio-service";
 import { getCareerGapForUser, listCareerSummaries } from "@/lib/services/career-service";
@@ -54,18 +54,18 @@ async function loadDashboardData(userId: number, record: typeof users.$inferSele
       await ensureRoadmapForUser(userId, targetCareer.id, {
         hoursPerWeek: record.weeklyHours,
       });
-      roadmap = await getRoadmapForUser(userId);
+      // Fresh read: this request just created the roadmap.
+      roadmap = await loadRoadmapForUser(userId);
     }
 
-    const planner = await getPlannerData(userId);
-    const portfolio = await getPortfolioForUser(userId);
-    const gaps = targetCareer ? await getCareerGapForUser(targetCareer.id, userId) : [];
-    let jobMatches: Awaited<ReturnType<typeof listJobsWithMatch>> = [];
-    try {
-      jobMatches = await listJobsWithMatch(userId);
-    } catch {
-      jobMatches = [];
-    }
+    // Planner, portfolio, gaps and job matches are independent — one wave,
+    // not four sequential ones.
+    const [planner, portfolio, gaps, jobMatches] = await Promise.all([
+      getPlannerData(userId),
+      getPortfolioForUser(userId),
+      targetCareer ? getCareerGapForUser(targetCareer.id, userId) : Promise.resolve([]),
+      listJobsWithMatch(userId).catch((): Awaited<ReturnType<typeof listJobsWithMatch>> => []),
+    ]);
 
     const now = new Date();
     const todayEnd = endOfDay(now);

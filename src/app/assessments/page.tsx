@@ -42,14 +42,16 @@ export default async function AssessmentsPage() {
   }
 
   const db = await getDb();
-  const blueprints = await db
-    .select()
-    .from(assessmentBlueprints)
-    .where(eq(assessmentBlueprints.status, "published"))
-    .orderBy(desc(assessmentBlueprints.version));
-
-  const sectionRows = await db.select().from(assessmentSections);
-  const user = await getCurrentUser();
+  // Blueprints, sections and session are independent — one wave.
+  const [blueprints, sectionRows, user] = await Promise.all([
+    db
+      .select()
+      .from(assessmentBlueprints)
+      .where(eq(assessmentBlueprints.status, "published"))
+      .orderBy(desc(assessmentBlueprints.version)),
+    db.select().from(assessmentSections),
+    getCurrentUser(),
+  ]);
   const attempts = user ? await listUserAttempts(user.id) : [];
 
   return (

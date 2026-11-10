@@ -45,28 +45,21 @@ export default async function SkillsSlugPage({ params }: SlugParams) {
   const [value] = slug;
   if (!value || slug.length !== 1) notFound();
 
+  // The session is free here (the layout already resolved it through the
+  // request memo). Track and skill lookups run together; track still takes
+  // precedence for rendering. Anonymous lookups also match the keys that
+  // generateMetadata already resolved, so they cost nothing extra.
   const user = await getCurrentUser();
-
-  // Track takes precedence for lookup, then skill — both are DB-driven.
-  let trackData: Awaited<ReturnType<typeof getCareerTrackBySlug>> | null = null;
-  let skillData: Awaited<ReturnType<typeof getSkillBySlug>> | null = null;
-
-  try {
-    trackData = await getCareerTrackBySlug(value, user?.id);
-  } catch {
-    /* not a track */
-  }
-  if (!trackData) {
-    try {
-      skillData = await getSkillBySlug(value, user?.id);
-    } catch {
-      /* not a skill */
-    }
-  }
+  const [trackData, skillData] = await Promise.all([
+    getCareerTrackBySlug(value, user?.id).catch(() => null),
+    getSkillBySlug(value, user?.id).catch(() => null),
+  ]);
   if (!trackData && !skillData) notFound();
 
   if (trackData) {
-    const readiness = user ? await getCareerReadinessForTrack(value, user.id) : null;
+    const readiness = user
+      ? await getCareerReadinessForTrack(value, user.id).catch(() => null)
+      : null;
     return <TrackPageView track={trackData.track} skills={trackData.skills} readiness={readiness} />;
   }
 

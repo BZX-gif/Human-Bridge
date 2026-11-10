@@ -56,6 +56,15 @@ async function createDb(): Promise<Database> {
     const pool = new Pool({
       connectionString: url,
       max: Number(process.env.HB_DB_POOL_MAX ?? 10),
+      // Bound every wait: a wedged database must surface as a fast 503, not
+      // a hung page. 5s to acquire, 30s idle lifetime.
+      connectionTimeoutMillis: Number(process.env.HB_DB_CONNECT_TIMEOUT_MS ?? 5000),
+      idleTimeoutMillis: 30_000,
+    });
+    // An idle-client error (e.g. the server killed a connection) must never
+    // crash the process — the pool replaces dead clients automatically.
+    pool.on("error", (error) => {
+      console.error("[db] idle postgres client error", error);
     });
     return drizzle(pool, { schema });
   }

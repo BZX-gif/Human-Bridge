@@ -28,20 +28,21 @@ export default async function ProjectsPage() {
   try {
     const db = await getDb();
     const [record] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const targetCareerId = record?.targetCareerId ?? undefined;
 
-    let careerName: string | null = null;
-    if (record?.targetCareerId) {
-      const [career] = await db
-        .select({ name: careers.name })
-        .from(careers)
-        .where(eq(careers.id, record.targetCareerId))
-        .limit(1);
-      careerName = career?.name ?? null;
-    }
-
-    const portfolio = await getPortfolioForUser(user.id);
-    const catalogue = await listProjectCatalogue(record?.targetCareerId ?? undefined);
-    view = { projects: portfolio.projects, catalogue, careerName };
+    // Career name, portfolio and catalogue are independent — one wave.
+    const [careerRows, portfolio, catalogue] = await Promise.all([
+      targetCareerId
+        ? db
+            .select({ name: careers.name })
+            .from(careers)
+            .where(eq(careers.id, targetCareerId))
+            .limit(1)
+        : Promise.resolve([]),
+      getPortfolioForUser(user.id),
+      listProjectCatalogue(targetCareerId),
+    ]);
+    view = { projects: portfolio.projects, catalogue, careerName: careerRows[0]?.name ?? null };
   } catch (error) {
     console.error("[projects] failed to load", error);
   }

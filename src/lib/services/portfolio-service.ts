@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { requestMemo } from "@/lib/server-cache";
 import { getDb } from "@/db";
 import {
   careerRoadmaps,
@@ -103,47 +104,76 @@ async function evidenceForProjects(userId: number, projectId: number, title: str
     .from(skills)
     .where(inArray(skills.slug, slugs));
 
-  for (const row of rows) {
-    await db.insert(skillEvidence).values({
-      userId,
-      skillId: row.id,
-      source: "SELF_REPORTED",
-      label: `Portfolio project: ${title}`,
-      detail:
-        "Self-attested project work. This is evidence of practice, not a verified assessment result.",
-      projectId,
-    });
+  if (rows.length > 0) {
+    await db.insert(skillEvidence).values(
+      rows.map((row) => ({
+        userId,
+        skillId: row.id,
+        source: "SELF_REPORTED" as const,
+        label: `Portfolio project: ${title}`,
+        detail:
+          "Self-attested project work. This is evidence of practice, not a verified assessment result.",
+        projectId,
+      })),
+    );
   }
   await recomputeSkillScores(userId, rows.map((row) => row.id));
   await refreshPassport(userId);
 }
 
-export async function getPortfolioForUser(userId: number): Promise<PortfolioView> {
+export async function loadPortfolioForUser(userId: number): Promise<PortfolioView> {
   const db = await getDb();
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user) throw new ApiError("NOT_FOUND", "User not found.");
 
-  const passport = await getPassportForUser(userId);
-  const userSkills = await getUserSkills(userId);
+  // Wave 1: passport, skills, target career and active roadmap are independent.
+  const [passport, userSkills, careerRows, roadmapRows] = await Promise.all([
+    getPassportForUser(userId),
+    getUserSkills(userId),
+    user.targetCareerId
+      ? db.select().from(careers).where(eq(careers.id, user.targetCareerId)).limit(1)
+      : Promise.resolve([] as (typeof careers.$inferSelect)[]),
+    db
+      .select()
+      .from(careerRoadmaps)
+      .where(and(eq(careerRoadmaps.userId, userId), eq(careerRoadmaps.status, "active")))
+      .orderBy(desc(careerRoadmaps.updatedAt))
+      .limit(1),
+  ]);
+  const [career] = careerRows;
+  const [roadmap] = roadmapRows;
 
-  const [career] = user.targetCareerId
-    ? await db.select().from(careers).where(eq(careers.id, user.targetCareerId)).limit(1)
-    : [];
-
-  const [roadmap] = await db
-    .select()
-    .from(careerRoadmaps)
-    .where(and(eq(careerRoadmaps.userId, userId), eq(careerRoadmaps.status, "active")))
-    .orderBy(desc(careerRoadmaps.updatedAt))
-    .limit(1);
+  // Wave 2: milestones, projects and completed tasks are independent. The two
+  // old milestone queries (summary + recent completions) are merged into one.
+  const [milestoneRows, projectRows, doneTasks] = await Promise.all([
+    roadmap
+      ? db
+          .select({
+            status: roadmapMilestones.status,
+            estimatedHours: roadmapMilestones.estimatedHours,
+            title: roadmapMilestones.title,
+            completedAt: roadmapMilestones.completedAt,
+          })
+          .from(roadmapMilestones)
+          .where(eq(roadmapMilestones.roadmapId, roadmap.id))
+      : Promise.resolve([] as { status: string; estimatedHours: number; title: string; completedAt: Date | null }[]),
+    db
+      .select({ userProject: userProjects, catalogue: projects })
+      .from(userProjects)
+      .leftJoin(projects, eq(projects.id, userProjects.projectId))
+      .where(eq(userProjects.userId, userId))
+      .orderBy(desc(userProjects.createdAt)),
+    db
+      .select()
+      .from(plannerTasks)
+      .where(and(eq(plannerTasks.userId, userId), eq(plannerTasks.status, "done")))
+      .orderBy(desc(plannerTasks.completedAt))
+      .limit(30),
+  ]);
 
   let roadmapSummary: PortfolioView["roadmap"] = null;
   let milestonesCompleted = 0;
   if (roadmap) {
-    const milestoneRows = await db
-      .select({ status: roadmapMilestones.status, estimatedHours: roadmapMilestones.estimatedHours })
-      .from(roadmapMilestones)
-      .where(eq(roadmapMilestones.roadmapId, roadmap.id));
     milestonesCompleted = milestoneRows.filter((m) => m.status === "completed").length;
     const total = milestoneRows.reduce((sum, m) => sum + Math.max(1, m.estimatedHours), 0);
     const done = milestoneRows
@@ -156,13 +186,6 @@ export async function getPortfolioForUser(userId: number): Promise<PortfolioView
       total: milestoneRows.length,
     };
   }
-
-  const projectRows = await db
-    .select({ userProject: userProjects, catalogue: projects })
-    .from(userProjects)
-    .leftJoin(projects, eq(projects.id, userProjects.projectId))
-    .where(eq(userProjects.userId, userId))
-    .orderBy(desc(userProjects.createdAt));
 
   const projectViews: PortfolioProjectView[] = projectRows.map(({ userProject, catalogue }) => ({
     id: userProject.id,
@@ -183,13 +206,6 @@ export async function getPortfolioForUser(userId: number): Promise<PortfolioView
     createdAt: userProject.createdAt.toISOString(),
   }));
 
-  const doneTasks = await db
-    .select()
-    .from(plannerTasks)
-    .where(and(eq(plannerTasks.userId, userId), eq(plannerTasks.status, "done")))
-    .orderBy(desc(plannerTasks.completedAt))
-    .limit(30);
-
   const activity: PortfolioActivity[] = [
     ...doneTasks.slice(0, 8).map((task) => ({
       id: `task-${task.id}`,
@@ -207,36 +223,27 @@ export async function getPortfolioForUser(userId: number): Promise<PortfolioView
     })),
   ];
 
-  let completedMilestones: { title: string; completedAt: string }[] = [];
-  if (roadmap) {
-    const milestoneRows = await db
-      .select({ title: roadmapMilestones.title, completedAt: roadmapMilestones.completedAt })
-      .from(roadmapMilestones)
-      .where(
-        and(
-          eq(roadmapMilestones.roadmapId, roadmap.id),
-          eq(roadmapMilestones.status, "completed"),
-        ),
-      )
-      .orderBy(desc(roadmapMilestones.completedAt))
-      .limit(8);
-    completedMilestones = milestoneRows
-      .filter((milestone) => milestone.completedAt)
-      .map((milestone) => ({
-        title: milestone.title,
-        completedAt: (milestone.completedAt as Date).toISOString(),
-      }));
-    for (const milestone of milestoneRows) {
-      if (!milestone.completedAt) continue;
-      activity.push({
-        id: `milestone-${milestone.title}`,
-        type: "milestone",
-        label: milestone.title,
-        detail: "Milestone completed",
-        at: milestone.completedAt.toISOString(),
-      });
-    }
-  }
+  // Recent completions come from the same milestone rows fetched above — no
+  // second query. (Same semantics: completed, newest first, max 8.)
+  const completedMilestones: { title: string; completedAt: string }[] = roadmap
+    ? milestoneRows
+        .filter((milestone) => milestone.status === "completed" && milestone.completedAt)
+        .sort(
+          (a, b) => (b.completedAt as Date).getTime() - (a.completedAt as Date).getTime(),
+        )
+        .slice(0, 8)
+        .map((milestone) => {
+          const at = (milestone.completedAt as Date).toISOString();
+          activity.push({
+            id: `milestone-${milestone.title}`,
+            type: "milestone",
+            label: milestone.title,
+            detail: "Milestone completed",
+            at,
+          });
+          return { title: milestone.title, completedAt: at };
+        })
+    : [];
 
   activity.sort((a, b) => (a.at < b.at ? 1 : -1));
 
@@ -291,8 +298,11 @@ export async function getPortfolioForUser(userId: number): Promise<PortfolioView
   };
 }
 
+/** Request-deduped portfolio read for pages and GET routes. */
+export const getPortfolioForUser = requestMemo(loadPortfolioForUser);
+
 /** Public view. Only fields the owner has chosen to expose are read. */
-export async function getPublicPortfolio(publicId: string): Promise<PortfolioView> {
+export async function loadPublicPortfolio(publicId: string): Promise<PortfolioView> {
   const db = await getDb();
   const [passport] = await db
     .select()
@@ -320,6 +330,8 @@ export async function getPublicPortfolio(publicId: string): Promise<PortfolioVie
     activity: [],
   };
 }
+
+export const getPublicPortfolio = requestMemo(loadPublicPortfolio);
 
 export async function addProject(
   userId: number,
@@ -485,7 +497,7 @@ export async function deleteProject(userId: number, id: number): Promise<void> {
 }
 
 /** Curated project catalogue, optionally scoped to a career. */
-export async function listProjectCatalogue(careerId?: number): Promise<
+export async function loadProjectCatalogue(careerId?: number): Promise<
   {
     id: number;
     slug: string;
@@ -520,6 +532,8 @@ export async function listProjectCatalogue(careerId?: number): Promise<
     instructions: project.instructions,
   }));
 }
+
+export const listProjectCatalogue = requestMemo(loadProjectCatalogue);
 
 export async function updateProfessionalProfile(
   userId: number,

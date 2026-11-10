@@ -28,39 +28,39 @@ export interface MentorContext {
 export async function buildMentorContext(userId: number): Promise<MentorContext> {
   const db = await getDb();
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const targetCareerId = user?.targetCareerId ?? null;
 
-  let careerName: string | null = null;
-  let careerSlug: string | null = null;
-  let gaps: MentorContext["gaps"] = [];
-  if (user?.targetCareerId) {
-    const [career] = await db
-      .select({ name: careers.name, slug: careers.slug })
-      .from(careers)
-      .where(eq(careers.id, user.targetCareerId))
-      .limit(1);
-    careerName = career?.name ?? null;
-    careerSlug = career?.slug ?? null;
-    gaps = (await getCareerGapForUser(user.targetCareerId, userId))
-      .filter((gap) => gap.status !== "ready")
-      .slice(0, 6)
-      .map((gap) => ({
-        name: gap.name,
-        currentScore: gap.currentScore,
-        requiredScore: gap.requiredScore,
-        importance: gap.importance,
-      }));
-  }
-
-  const [skills, roadmap, portfolio, catalogue, taskRows] = await Promise.all([
+  // Everything below is independent once the target career is known — one wave.
+  const [careerRows, gapItems, skills, roadmap, portfolio, catalogue, taskRows] = await Promise.all([
+    targetCareerId
+      ? db
+          .select({ name: careers.name, slug: careers.slug })
+          .from(careers)
+          .where(eq(careers.id, targetCareerId))
+          .limit(1)
+      : Promise.resolve([]),
+    targetCareerId ? getCareerGapForUser(targetCareerId, userId) : Promise.resolve([]),
     getUserSkills(userId),
     getRoadmapForUser(userId),
     getPortfolioForUser(userId),
-    listProjectCatalogue(user?.targetCareerId ?? undefined),
+    listProjectCatalogue(targetCareerId ?? undefined),
     db
       .select()
       .from(plannerTasks)
       .where(eq(plannerTasks.userId, userId)),
   ]);
+
+  const careerName: string | null = careerRows[0]?.name ?? null;
+  const careerSlug: string | null = careerRows[0]?.slug ?? null;
+  const gaps: MentorContext["gaps"] = gapItems
+    .filter((gap) => gap.status !== "ready")
+    .slice(0, 6)
+    .map((gap) => ({
+      name: gap.name,
+      currentScore: gap.currentScore,
+      requiredScore: gap.requiredScore,
+      importance: gap.importance,
+    }));
 
   const now = new Date();
   const todaysTasks = taskRows

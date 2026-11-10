@@ -34,18 +34,17 @@ export default async function JobDetailPage({
   const jobId = Number(id);
   if (!Number.isInteger(jobId)) notFound();
 
-  let data;
-  try {
-    data = await getJob(jobId);
-  } catch {
-    notFound();
-  }
+  // Job and session are independent — fetch together. (generateMetadata calls
+  // getJob too; the request memo collapses it to one execution.)
+  const [data, user] = await Promise.all([
+    getJob(jobId).catch(() => null),
+    getCurrentUser(),
+  ]);
+  if (!data) notFound();
 
   const { job, company, requiredSkills } = data;
-  const user = await getCurrentUser();
-  const match = user
-    ? matchCandidateToRequirements(requiredSkills, await toCandidateSkills(user.id))
-    : null;
+  const candidate = user ? await toCandidateSkills(user.id) : null;
+  const match = user && candidate ? matchCandidateToRequirements(requiredSkills, candidate) : null;
 
   const responsibilities = Array.isArray(job.responsibilities)
     ? (job.responsibilities as string[])

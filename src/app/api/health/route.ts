@@ -10,9 +10,16 @@ export async function GET() {
   let databaseReachable = false;
 
   if (databaseConfigured) {
+    // Bounded probe: a wedged database must report 503 fast, never hang the
+    // health check (and through it, the load balancer) indefinitely.
     try {
       const db = await getDb();
-      await db.execute(sql`select 1`);
+      await Promise.race([
+        db.execute(sql`select 1`),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("health probe timed out")), 5000),
+        ),
+      ]);
       databaseReachable = true;
     } catch {
       databaseReachable = false;

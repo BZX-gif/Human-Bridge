@@ -1,4 +1,5 @@
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { requestMemo } from "@/lib/server-cache";
 import { getDb } from "@/db";
 import {
   assessmentBlueprintSkills,
@@ -46,7 +47,7 @@ export interface TrackView {
   roles: { id: number; name: string; slug: string }[];
 }
 
-export async function listCareerTracks(): Promise<TrackView[]> {
+export async function loadCareerTracks(): Promise<TrackView[]> {
   const db = await getDb();
   const rows = await db
     .select({
@@ -75,6 +76,8 @@ export async function listCareerTracks(): Promise<TrackView[]> {
   }));
 }
 
+export const listCareerTracks = requestMemo(loadCareerTracks);
+
 export interface TrackSkillView {
   id: number;
   slug: string;
@@ -92,7 +95,7 @@ export interface TrackSkillView {
   capabilities: { id: number; dimension: string; title: string; description: string | null }[];
 }
 
-export async function getCareerTrackBySlug(
+export async function loadCareerTrackBySlug(
   slug: string,
   userId?: number,
 ): Promise<{ track: TrackView; skills: TrackSkillView[] }> {
@@ -104,50 +107,54 @@ export async function getCareerTrackBySlug(
     .limit(1);
   if (!track) throw new ApiError("NOT_FOUND", "Career track not found.");
 
-  const roleRows = await db
-    .select({ id: careers.id, name: careers.name, slug: careers.slug })
-    .from(careers)
-    .where(eq(careers.trackId, track.id))
-    .orderBy(careers.name);
+  // Roles and skills are independent once the track is known.
+  const [roleRows, skillRows] = await Promise.all([
+    db
+      .select({ id: careers.id, name: careers.name, slug: careers.slug })
+      .from(careers)
+      .where(eq(careers.trackId, track.id))
+      .orderBy(careers.name),
+    db
+      .select({
+        id: skills.id,
+        slug: skills.slug,
+        name: skills.name,
+        description: skills.description,
+        skillType: skills.skillType,
+        difficulty: skills.difficulty,
+        importance: skills.importance,
+        marketRelevance: skills.marketRelevance,
+        requiredLevel: trackSkills.requiredLevel,
+        categoryLabel: trackSkills.categoryLabel,
+        ordering: trackSkills.ordering,
+      })
+      .from(trackSkills)
+      .innerJoin(skills, eq(skills.id, trackSkills.skillId))
+      .where(and(eq(trackSkills.trackId, track.id), eq(skills.status, "active")))
+      .orderBy(trackSkills.ordering),
+  ]);
 
-  const skillRows = await db
-    .select({
-      id: skills.id,
-      slug: skills.slug,
-      name: skills.name,
-      description: skills.description,
-      skillType: skills.skillType,
-      difficulty: skills.difficulty,
-      importance: skills.importance,
-      marketRelevance: skills.marketRelevance,
-      requiredLevel: trackSkills.requiredLevel,
-      categoryLabel: trackSkills.categoryLabel,
-      ordering: trackSkills.ordering,
-    })
-    .from(trackSkills)
-    .innerJoin(skills, eq(skills.id, trackSkills.skillId))
-    .where(and(eq(trackSkills.trackId, track.id), eq(skills.status, "active")))
-    .orderBy(trackSkills.ordering);
-
+  // Sub-skills, capabilities and the candidate's own scores are independent.
   const skillIds = skillRows.map((s) => s.id);
-  const subRows = skillIds.length
-    ? await db
-        .select()
-        .from(subSkills)
-        .where(and(inArray(subSkills.skillId, skillIds), eq(subSkills.status, "active")))
-        .orderBy(subSkills.ordering)
-    : [];
-  const capRows = skillIds.length
-    ? await db
-        .select()
-        .from(skillCapabilities)
-        .where(
-          and(inArray(skillCapabilities.skillId, skillIds), eq(skillCapabilities.status, "active")),
-        )
-        .orderBy(skillCapabilities.ordering)
-    : [];
-
-  const mySkills = userId ? await getUserSkills(userId) : [];
+  const [subRows, capRows, mySkills] = await Promise.all([
+    skillIds.length
+      ? db
+          .select()
+          .from(subSkills)
+          .where(and(inArray(subSkills.skillId, skillIds), eq(subSkills.status, "active")))
+          .orderBy(subSkills.ordering)
+      : Promise.resolve([]),
+    skillIds.length
+      ? db
+          .select()
+          .from(skillCapabilities)
+          .where(
+            and(inArray(skillCapabilities.skillId, skillIds), eq(skillCapabilities.status, "active")),
+          )
+          .orderBy(skillCapabilities.ordering)
+      : Promise.resolve([]),
+    userId ? getUserSkills(userId) : Promise.resolve([]),
+  ]);
   const myBySlug = new Map(mySkills.map((s) => [s.slug, s]));
 
   const skillsView: TrackSkillView[] = skillRows.map((row) => ({
@@ -185,6 +192,8 @@ export async function getCareerTrackBySlug(
   };
 }
 
+export const getCareerTrackBySlug = requestMemo(loadCareerTrackBySlug);
+
 export interface SkillListItem {
   id: number;
   name: string;
@@ -202,7 +211,7 @@ export interface SkillListItem {
   requiredLevel?: SkillLevel | null;
 }
 
-export async function listSkills(filters?: {
+export async function loadSkills(filters?: {
   trackSlug?: string;
   skillType?: "domain" | "tool" | "human" | "ai_fluency";
 }): Promise<SkillListItem[]> {
@@ -264,6 +273,8 @@ export async function listSkills(filters?: {
     .orderBy(skills.name);
 }
 
+export const listSkills = requestMemo(loadSkills);
+
 export interface SkillDetailView {
   id: number;
   name: string;
@@ -305,7 +316,7 @@ export interface SkillDetailView {
   candidate: UserSkillView | null;
 }
 
-export async function getSkillBySlug(slug: string, userId?: number): Promise<SkillDetailView> {
+export async function loadSkillBySlug(slug: string, userId?: number): Promise<SkillDetailView> {
   const db = await getDb();
   const [skill] = await db
     .select({
@@ -318,7 +329,9 @@ export async function getSkillBySlug(slug: string, userId?: number): Promise<Ski
     .limit(1);
   if (!skill) throw new ApiError("NOT_FOUND", "Skill not found.");
 
-  const [trackLinks, subRows, capRows, assessmentRows] = await Promise.all([
+  // Track links, sub-skills, capabilities, assessments, the candidate's own
+  // score and the legacy link check are all independent — one wave.
+  const [trackLinks, subRows, capRows, assessmentRows, candidate, legacyLinked] = await Promise.all([
     db
       .select({
         id: careerTracks.id,
@@ -355,17 +368,15 @@ export async function getSkillBySlug(slug: string, userId?: number): Promise<Ski
       .innerJoin(assessmentBlueprints, eq(assessmentBlueprints.id, assessmentBlueprintSkills.blueprintId))
       .where(eq(assessmentBlueprintSkills.skillId, skill.skill.id))
       .orderBy(desc(assessmentBlueprints.updatedAt)),
+    userId !== undefined ? getUserSkillForCandidate(userId, skill.skill.id) : Promise.resolve(null),
+    // Assessment readiness: also count legacy item skillSlug references so the
+    // existing seeded blueprint (which predates the normalised link table) shows up.
+    db
+      .select({ id: assessmentItems.id })
+      .from(assessmentItems)
+      .where(sql`${assessmentItems.skillSlugs}::text ILIKE ${`%"${slug}"%`}`)
+      .limit(1),
   ]);
-
-  const candidate = userId !== undefined ? await getUserSkillForCandidate(userId, skill.skill.id) : null;
-
-  // Assessment readiness: also count legacy item skillSlug references so the
-  // existing seeded blueprint (which predates the normalised link table) shows up.
-  const legacyLinked = await db
-    .select({ id: assessmentItems.id })
-    .from(assessmentItems)
-    .where(sql`${assessmentItems.skillSlugs}::text ILIKE ${`%"${slug}"%`}`)
-    .limit(1);
 
   return {
     id: skill.skill.id,
@@ -399,6 +410,8 @@ export async function getSkillBySlug(slug: string, userId?: number): Promise<Ski
   };
 }
 
+export const getSkillBySlug = requestMemo(loadSkillBySlug);
+
 async function getUserSkillForCandidate(
   userId: number,
   skillId: number,
@@ -425,7 +438,7 @@ async function getUserSkillForCandidate(
   return row ?? null;
 }
 
-export async function getTrackSkills(trackSlug: string): Promise<SkillListItem[]> {
+export async function loadTrackSkills(trackSlug: string): Promise<SkillListItem[]> {
   const db = await getDb();
   const [track] = await db
     .select({ id: careerTracks.id })
@@ -452,16 +465,22 @@ export async function getTrackSkills(trackSlug: string): Promise<SkillListItem[]
     .orderBy(trackSkills.ordering);
 }
 
-export async function getCareerReadinessForTrack(
+export const getTrackSkills = requestMemo(loadTrackSkills);
+
+export async function loadCareerReadinessForTrack(
   trackSlug: string,
   userId: number,
 ): Promise<{ readiness: number | null; gaps: { slug: string; name: string; score: number; requiredLevel: SkillLevel }[] }> {
   const db = await getDb();
-  const [track] = await db
-    .select({ id: careerTracks.id })
-    .from(careerTracks)
-    .where(eq(careerTracks.slug, trackSlug))
-    .limit(1);
+  const [track, mine] = await Promise.all([
+    db
+      .select({ id: careerTracks.id })
+      .from(careerTracks)
+      .where(eq(careerTracks.slug, trackSlug))
+      .limit(1)
+      .then((rows) => rows[0]),
+    getUserSkills(userId),
+  ]);
   if (!track) throw new ApiError("NOT_FOUND", "Career track not found.");
 
   const required = await db
@@ -474,7 +493,6 @@ export async function getCareerReadinessForTrack(
     .innerJoin(skills, eq(skills.id, trackSkills.skillId))
     .where(eq(trackSkills.trackId, track.id));
 
-  const mine = await getUserSkills(userId);
   const bySlug = new Map(mine.map((s) => [s.slug, s]));
 
   const gaps = required.map((r) => ({
@@ -488,6 +506,8 @@ export async function getCareerReadinessForTrack(
   const readiness = scored.length === 0 ? null : clampScore(scored.reduce((sum, g) => sum + g.score, 0) / scored.length);
   return { readiness, gaps };
 }
+
+export const getCareerReadinessForTrack = requestMemo(loadCareerReadinessForTrack);
 
 // ─── AI Fluency (cross-functional capability) ─────────────────────────────
 
@@ -505,14 +525,15 @@ export interface AiFluencySummary {
  * tagged `ai_fluency` that the candidate has evidence for. It can be shown on
  * the verified profile and queried by future employer search.
  */
-export async function getAiFluencyProfile(userId: number): Promise<AiFluencySummary> {
+export async function loadAiFluencyProfile(userId: number): Promise<AiFluencySummary> {
   const db = await getDb();
-  const all = await getUserSkills(userId);
-
-  const rows = await db
-    .select({ id: skills.id })
-    .from(skills)
-    .where(and(eq(skills.skillType, "ai_fluency"), eq(skills.status, "active")));
+  const [all, rows] = await Promise.all([
+    getUserSkills(userId),
+    db
+      .select({ id: skills.id })
+      .from(skills)
+      .where(and(eq(skills.skillType, "ai_fluency"), eq(skills.status, "active"))),
+  ]);
   const aiSkillIds = new Set(rows.map((r) => r.id));
 
   const capabilities = all.filter((s) => aiSkillIds.has(s.skillId));
@@ -540,6 +561,8 @@ export async function getAiFluencyProfile(userId: number): Promise<AiFluencySumm
     capabilities,
   };
 }
+
+export const getAiFluencyProfile = requestMemo(loadAiFluencyProfile);
 
 // ─── Admin write paths ─────────────────────────────────────────────────────
 
@@ -915,12 +938,14 @@ export async function createAssessment(input: CreateAssessmentInput) {
       .select({ id: skills.id, slug: skills.slug })
       .from(skills)
       .where(inArray(skills.slug, input.skillSlugs));
-    for (const skill of found) {
-      await db.insert(assessmentBlueprintSkills).values({
-        blueprintId: row.id,
-        skillId: skill.id,
-        weight: 100,
-      });
+    if (found.length > 0) {
+      await db.insert(assessmentBlueprintSkills).values(
+        found.map((skill) => ({
+          blueprintId: row.id,
+          skillId: skill.id,
+          weight: 100,
+        })),
+      );
     }
   }
 

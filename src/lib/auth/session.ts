@@ -1,9 +1,10 @@
 import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, lt } from "drizzle-orm";
 import { getDb } from "@/db";
 import { sessions, users } from "@/db/schema";
 import { ApiError } from "@/lib/api/response";
+import { requestMemo } from "@/lib/server-cache";
 import type { SessionUser } from "@/lib/auth/types";
 
 export type { SessionUser };
@@ -15,6 +16,13 @@ export async function createSession(userId: number): Promise<string> {
   const id = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   await db.insert(sessions).values({ id, userId, expiresAt });
+
+  // Opportunistic purge so expired sessions never accumulate. Best-effort and
+  // cheap: the table stays tiny precisely because this runs on every login.
+  void db
+    .delete(sessions)
+    .where(lt(sessions.expiresAt, new Date()))
+    .catch(() => undefined);
 
   const jar = await cookies();
   jar.set(SESSION_COOKIE, id, {
@@ -42,7 +50,7 @@ export async function destroySession(): Promise<void> {
 }
 
 /** Returns the signed-in user, or null. Never throws for anonymous visitors. */
-export async function getCurrentUser(): Promise<SessionUser | null> {
+export const getCurrentUser: () => Promise<SessionUser | null> = requestMemo(async () => {
   let sessionId: string | undefined;
   try {
     const jar = await cookies();
@@ -72,7 +80,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   } catch {
     return null;
   }
-}
+});
 
 /** Require any authenticated user. */
 export async function requireUser(): Promise<SessionUser> {
