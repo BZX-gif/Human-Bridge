@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gte, inArray, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
+import { requestMemo } from "@/lib/server-cache";
 import { getDb } from "@/db";
 import {
   careerRoadmaps,
@@ -115,7 +116,7 @@ function taskView(
 }
 
 /** Tasks + goals + milestone links for the planner, scoped to one user. */
-export async function getPlannerData(
+export async function loadPlannerData(
   userId: number,
   options: { from?: Date; to?: Date } = {},
 ): Promise<PlannerData> {
@@ -244,6 +245,9 @@ export async function getPlannerData(
     },
   };
 }
+
+/** Request-deduped planner read for pages and GET routes. */
+export const getPlannerData = requestMemo(loadPlannerData);
 
 export async function createTask(
   userId: number,

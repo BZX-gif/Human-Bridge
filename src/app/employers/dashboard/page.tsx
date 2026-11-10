@@ -20,8 +20,11 @@ export default async function EmployerDashboardPage() {
   const company = await getCompanyForUser(user.id);
   if (!company) redirect("/employers");
 
-  const jobs = await listCompanyJobs(company.id);
-  const applications = await findApplicationsForCompany(company.id);
+  // Jobs and applications are independent — one wave.
+  const [jobs, applications] = await Promise.all([
+    listCompanyJobs(company.id),
+    findApplicationsForCompany(company.id),
+  ]);
 
   return (
     <EmployerDashboard

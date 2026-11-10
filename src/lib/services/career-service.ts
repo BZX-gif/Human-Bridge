@@ -1,4 +1,5 @@
 import { desc, eq } from "drizzle-orm";
+import { requestMemo } from "@/lib/server-cache";
 import { getDb } from "@/db";
 import {
   assessmentBlueprints,
@@ -16,12 +17,12 @@ import {
 } from "./matching-service";
 import { toCandidateSkills } from "./job-service";
 
-export async function listCareers() {
+export const listCareers = requestMemo(async () => {
   const db = await getDb();
   return db.select().from(careers).orderBy(careers.name);
-}
+});
 
-export async function getCareerSkills(careerId: number): Promise<RequiredSkill[]> {
+export const getCareerSkills = requestMemo(async (careerId: number): Promise<RequiredSkill[]> => {
   const db = await getDb();
   const rows = await db
     .select({
@@ -38,39 +39,42 @@ export async function getCareerSkills(careerId: number): Promise<RequiredSkill[]
     .where(eq(careerSkills.careerId, careerId))
     .orderBy(careerSkills.order);
   return rows;
-}
+});
 
-export async function getCareerBySlug(slug: string) {
+export const getCareerBySlug = requestMemo(async (slug: string) => {
   const db = await getDb();
   const [career] = await db.select().from(careers).where(eq(careers.slug, slug)).limit(1);
   if (!career) throw new ApiError("NOT_FOUND", "Career not found.");
 
-  const requiredSkills = await getCareerSkills(career.id);
+  // The skills list and the latest blueprint are independent — one wave, not two.
+  const [requiredSkills, blueprintRows] = await Promise.all([
+    getCareerSkills(career.id),
+    db
+      .select({
+        slug: assessmentBlueprints.slug,
+        title: assessmentBlueprints.title,
+        summary: assessmentBlueprints.summary,
+        durationMinutes: assessmentBlueprints.durationMinutes,
+        version: assessmentBlueprints.version,
+      })
+      .from(assessmentBlueprints)
+      .where(eq(assessmentBlueprints.careerId, career.id))
+      .orderBy(desc(assessmentBlueprints.version))
+      .limit(1),
+  ]);
 
-  const [blueprint] = await db
-    .select({
-      slug: assessmentBlueprints.slug,
-      title: assessmentBlueprints.title,
-      summary: assessmentBlueprints.summary,
-      durationMinutes: assessmentBlueprints.durationMinutes,
-      version: assessmentBlueprints.version,
-    })
-    .from(assessmentBlueprints)
-    .where(eq(assessmentBlueprints.careerId, career.id))
-    .orderBy(desc(assessmentBlueprints.version))
-    .limit(1);
+  return { career, requiredSkills, blueprint: blueprintRows[0] ?? null };
+});
 
-  return { career, requiredSkills, blueprint: blueprint ?? null };
-}
-
-export async function getCareerGapForUser(
-  careerId: number,
-  userId: number,
-): Promise<SkillGapItem[]> {
-  const required = await getCareerSkills(careerId);
-  const candidate = await toCandidateSkills(userId);
-  return computeSkillGaps(required, candidate);
-}
+export const getCareerGapForUser = requestMemo(
+  async (careerId: number, userId: number): Promise<SkillGapItem[]> => {
+    const [required, candidate] = await Promise.all([
+      getCareerSkills(careerId),
+      toCandidateSkills(userId),
+    ]);
+    return computeSkillGaps(required, candidate);
+  },
+);
 
 export interface LearningRecommendation {
   skillSlug: string;
@@ -93,20 +97,19 @@ export interface LearningRecommendation {
  * Learning is driven by measured gaps, not by a catalogue. We only recommend
  * for skills where the candidate actually falls short of the role requirement.
  */
-export async function getLearningPath(
-  careerId: number,
-  userId: number,
-): Promise<LearningRecommendation[]> {
-  const db = await getDb();
-  const gaps = (await getCareerGapForUser(careerId, userId)).filter(
-    (g) => g.status !== "ready",
-  );
-  if (gaps.length === 0) return [];
+export const getLearningPath = requestMemo(
+  async (careerId: number, userId: number): Promise<LearningRecommendation[]> => {
+    const db = await getDb();
+    const gaps = (await getCareerGapForUser(careerId, userId)).filter(
+      (g) => g.status !== "ready",
+    );
+    if (gaps.length === 0) return [];
 
-  const allSkills = await db.select().from(skills);
-  const skillBySlug = new Map(allSkills.map((s) => [s.slug, s]));
-
-  const resources = await db.select().from(learningResources);
+    const [allSkills, resources] = await Promise.all([
+      db.select().from(skills),
+      db.select().from(learningResources),
+    ]);
+    const skillBySlug = new Map(allSkills.map((s) => [s.slug, s]));
 
   return gaps.map((gap) => {
     const skill = skillBySlug.get(gap.slug);
@@ -131,7 +134,8 @@ export async function getLearningPath(
       })),
     };
   });
-}
+  },
+);
 
 export interface CareerSummary {
   id: number;
@@ -152,7 +156,7 @@ export interface CareerSummary {
 }
 
 /** Careers with the few facts the explorer actually needs. One query per table. */
-export async function listCareerSummaries(): Promise<CareerSummary[]> {
+export const listCareerSummaries = requestMemo(async (): Promise<CareerSummary[]> => {
   const db = await getDb();
   const [careerRows, requirementRows] = await Promise.all([
     db
@@ -183,4 +187,4 @@ export async function listCareerSummaries(): Promise<CareerSummary[]> {
       isDemo: career.isDemo,
     };
   });
-}
+});

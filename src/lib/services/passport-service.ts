@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { requestMemo } from "@/lib/server-cache";
 import { getDb } from "@/db";
 import {
   assessmentAttempts,
@@ -57,15 +58,15 @@ export interface PassportView {
 const DISCLAIMER =
   "Every score on this passport is derived from evidence recorded by Human Bridge. Self-reported claims are shown as self-reported and never counted toward a verified level.";
 
-export async function getPassportForUser(userId: number): Promise<PassportView> {
+export async function loadPassportForUser(userId: number): Promise<PassportView> {
   const db = await getDb();
 
-  let [passport] = await db
-    .select()
-    .from(skillPassports)
-    .where(eq(skillPassports.userId, userId))
-    .limit(1);
+  const [passportRows, userRows] = await Promise.all([
+    db.select().from(skillPassports).where(eq(skillPassports.userId, userId)).limit(1),
+    db.select().from(users).where(eq(users.id, userId)).limit(1),
+  ]);
 
+  let [passport] = passportRows;
   if (!passport) {
     await refreshPassport(userId);
     [passport] = await db
@@ -76,14 +77,16 @@ export async function getPassportForUser(userId: number): Promise<PassportView> 
   }
   if (!passport) throw new ApiError("NOT_FOUND", "Passport not found.");
 
-  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const [user] = userRows;
   if (!user) throw new ApiError("NOT_FOUND", "User not found.");
 
   return buildPassport(passport, user, { includeAll: true });
 }
 
+export const getPassportForUser = requestMemo(loadPassportForUser);
+
 /** Public passport — exposes only what the candidate has chosen to expose. */
-export async function getPublicPassport(publicId: string): Promise<PassportView> {
+export async function loadPublicPassport(publicId: string): Promise<PassportView> {
   const db = await getDb();
   const [passport] = await db
     .select()
@@ -100,6 +103,8 @@ export async function getPublicPassport(publicId: string): Promise<PassportView>
 
   return buildPassport(passport, user, { includeAll: false });
 }
+
+export const getPublicPassport = requestMemo(loadPublicPassport);
 
 type PassportRow = typeof skillPassports.$inferSelect;
 type UserRow = typeof users.$inferSelect;
@@ -121,15 +126,30 @@ async function buildPassport(
 
   const show = (key: string) => options.includeAll || visibility[key] !== false;
 
-  const userSkills = show("skills") ? await getUserSkills(user.id) : [];
-
-  const evidenceRows = show("evidence")
-    ? await db
-        .select({ evidence: skillEvidence, slug: skills.slug })
-        .from(skillEvidence)
-        .innerJoin(skills, eq(skills.id, skillEvidence.skillId))
-        .where(eq(skillEvidence.userId, user.id))
-    : [];
+  // Skills, evidence, attempts and the target career are independent — one wave.
+  const [userSkills, evidenceRows, attemptRows, careerRows] = await Promise.all([
+    show("skills") ? getUserSkills(user.id) : Promise.resolve([]),
+    show("evidence")
+      ? db
+          .select({ evidence: skillEvidence, slug: skills.slug })
+          .from(skillEvidence)
+          .innerJoin(skills, eq(skills.id, skillEvidence.skillId))
+          .where(eq(skillEvidence.userId, user.id))
+      : Promise.resolve([]),
+    show("assessments")
+      ? db
+          .select({ attempt: assessmentAttempts, blueprint: assessmentBlueprints })
+          .from(assessmentAttempts)
+          .innerJoin(
+            assessmentBlueprints,
+            eq(assessmentBlueprints.id, assessmentAttempts.blueprintId),
+          )
+          .where(eq(assessmentAttempts.userId, user.id))
+      : Promise.resolve([]),
+    passport.careerId
+      ? db.select().from(careers).where(eq(careers.id, passport.careerId)).limit(1)
+      : Promise.resolve([]),
+  ]);
 
   const skillViews: PassportSkillView[] = userSkills.map((s) => ({
     slug: s.slug,
@@ -154,36 +174,21 @@ async function buildPassport(
       })),
   }));
 
-  const attemptRows = show("assessments")
-    ? await db
-        .select({ attempt: assessmentAttempts, blueprint: assessmentBlueprints })
-        .from(assessmentAttempts)
-        .innerJoin(
-          assessmentBlueprints,
-          eq(assessmentBlueprints.id, assessmentAttempts.blueprintId),
-        )
-        .where(eq(assessmentAttempts.userId, user.id))
-    : [];
-
   let targetRole: string | null = null;
   let gaps: PassportView["gaps"] = [];
-  if (passport.careerId) {
-    const [career] = await db
-      .select()
-      .from(careers)
-      .where(eq(careers.id, passport.careerId))
-      .limit(1);
-    targetRole = career?.name ?? null;
-    if (career) {
-      const required = await getCareerSkills(career.id);
-      const candidate = await toCandidateSkills(user.id);
-      gaps = computeSkillGaps(required, candidate).map((g) => ({
-        name: g.name,
-        status: g.status,
-        currentScore: g.currentScore,
-        requiredScore: g.requiredScore,
-      }));
-    }
+  const [career] = careerRows;
+  if (career) {
+    targetRole = career.name;
+    const [required, candidate] = await Promise.all([
+      getCareerSkills(career.id),
+      toCandidateSkills(user.id),
+    ]);
+    gaps = computeSkillGaps(required, candidate).map((g) => ({
+      name: g.name,
+      status: g.status,
+      currentScore: g.currentScore,
+      requiredScore: g.requiredScore,
+    }));
   }
 
   return {

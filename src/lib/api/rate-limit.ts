@@ -11,6 +11,21 @@ interface Bucket {
 
 const buckets = new Map<string, Bucket>();
 
+// Safety valve: without eviction this map grows with every unique client key.
+// Sweeping is amortised — at most one pass per minute, only once the map is
+// large enough to matter.
+const MAX_BUCKETS = 5000;
+const SWEEP_INTERVAL_MS = 60_000;
+let lastSweep = 0;
+
+function sweepExpired(now: number): void {
+  if (buckets.size < MAX_BUCKETS && now - lastSweep < SWEEP_INTERVAL_MS) return;
+  lastSweep = now;
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt <= now) buckets.delete(key);
+  }
+}
+
 export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
@@ -19,6 +34,7 @@ export interface RateLimitResult {
 
 export function rateLimit(key: string, limit: number, windowSeconds: number): RateLimitResult {
   const now = Date.now();
+  sweepExpired(now);
   const bucket = buckets.get(key);
 
   if (!bucket || bucket.resetAt <= now) {

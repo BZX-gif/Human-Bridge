@@ -11,13 +11,17 @@ import {
 } from "@/db/schema";
 import { ApiError } from "@/lib/api/response";
 import { recordEvent } from "@/lib/events";
+import { requestMemo } from "@/lib/server-cache";
 import { SKILL_LEVEL_LABELS } from "@/lib/assessment/skill-level";
 import { getJobSkills } from "./job-service";
 import { getUserSkills } from "./skill-service";
 import { matchCandidateToRequirements, type MatchResult } from "./matching-service";
 
 /** Assert this employer owns the job. Prevents cross-company data access. */
-export async function assertJobOwnership(jobId: number, companyId: number) {
+export const assertJobOwnership: (
+  jobId: number,
+  companyId: number,
+) => Promise<typeof jobs.$inferSelect> = requestMemo(async (jobId: number, companyId: number) => {
   const db = await getDb();
   const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
   if (!job) throw new ApiError("NOT_FOUND", "Job not found.");
@@ -26,7 +30,7 @@ export async function assertJobOwnership(jobId: number, companyId: number) {
     throw new ApiError("NOT_FOUND", "Job not found.");
   }
   return job;
-}
+});
 
 export interface CreateJobInput {
   title: string;
@@ -280,7 +284,9 @@ export async function updateApplicationStatus(
   }
 }
 
-export async function getCompanyForUser(userId: number) {
+export const getCompanyForUser: (
+  userId: number,
+) => Promise<typeof companies.$inferSelect | null> = requestMemo(async (userId: number) => {
   const db = await getDb();
   const [row] = await db
     .select({ company: companies })
@@ -289,7 +295,7 @@ export async function getCompanyForUser(userId: number) {
     .where(eq(users.id, userId))
     .limit(1);
   return row?.company ?? null;
-}
+});
 
 /** Compare a set of candidates on the same job's requirements. */
 export async function compareCandidates(

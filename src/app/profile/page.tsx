@@ -39,17 +39,18 @@ export default async function ProfilePage() {
     const db = await getDb();
     const [user] = await db.select().from(users).where(eq(users.id, authUser.id)).limit(1);
     if (user) {
-      let career: { name: string; slug: string } | null = null;
-      if (user.targetCareerId) {
-        const [record] = await db
-          .select({ name: careers.name, slug: careers.slug })
-          .from(careers)
-          .where(eq(careers.id, user.targetCareerId))
-          .limit(1);
-        career = record ?? null;
-      }
-
-      const portfolio = await getPortfolioForUser(user.id);
+      // Career name and portfolio are independent — one wave.
+      const [careerRows, portfolio] = await Promise.all([
+        user.targetCareerId
+          ? db
+              .select({ name: careers.name, slug: careers.slug })
+              .from(careers)
+              .where(eq(careers.id, user.targetCareerId))
+              .limit(1)
+          : Promise.resolve([]),
+        getPortfolioForUser(user.id),
+      ]);
+      const career: { name: string; slug: string } | null = careerRows[0] ?? null;
       view = {
         email: user.email,
         career,

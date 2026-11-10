@@ -9,7 +9,6 @@ import { getUserSkills } from "@/lib/services/skill-service";
 import { listCareerTracks } from "@/lib/services/taxonomy-service";
 import { EmptyState } from "@/components/ui/States";
 import { ButtonLink } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { ConfidenceBadge, VerificationBadge } from "@/components/assessment/EvidenceBadges";
 
 export const dynamic = "force-dynamic";
@@ -33,15 +32,14 @@ export default async function SkillsPage() {
   }
 
   const db = await getDb();
-  const [tracks, rows] = await Promise.all([
+  // Catalogue, tracks and session are independent — one wave.
+  const [tracks, rows, user] = await Promise.all([
     listCareerTracks(),
     db
       .select({
         id: skills.id,
         name: skills.name,
         slug: skills.slug,
-        description: skills.description,
-        whyEmployersWant: skills.whyEmployersWant,
         skillType: skills.skillType,
         difficulty: skills.difficulty,
         categoryName: skillCategories.name,
@@ -50,9 +48,9 @@ export default async function SkillsPage() {
       .leftJoin(skillCategories, eq(skillCategories.id, skills.categoryId))
       .where(eq(skills.status, "active"))
       .orderBy(skills.name),
+    getCurrentUser(),
   ]);
 
-  const user = await getCurrentUser();
   const mine = user ? await getUserSkills(user.id) : [];
   const mineBySlug = new Map(mine.map((skill) => [skill.slug, skill]));
   const verified = mine.filter((skill) => skill.verificationStatus !== "self_reported" && skill.score > 0);
@@ -174,7 +172,7 @@ export default async function SkillsPage() {
           <div>
             <h2 className="text-[15px] font-semibold text-ink">Skill catalogue</h2>
             <p className="mt-1 text-[11.5px] text-muted">
-              Grouped by category. Open a category to see what each skill means and where you stand.
+              Grouped by category. Open a skill to see what it means and where you stand.
             </p>
           </div>
           <ButtonLink href="/careers" variant="ghost" size="sm">
@@ -198,49 +196,52 @@ export default async function SkillsPage() {
                   </span>
                   <span className="text-[10px] uppercase tracking-[0.1em] text-faint">{items.length} skills</span>
                 </summary>
-                <ul className="grid gap-2 pb-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/*
+                  Compact rows: the catalogue holds 100+ skills, so the list
+                  renders names + evidence state only (~1/5 of the old bytes).
+                  Descriptions live on the skill detail page.
+                */}
+                <ul className="grid gap-x-6 pb-4 sm:grid-cols-2 lg:grid-cols-3">
                   {items.map((skill) => {
                     const evidence = mineBySlug.get(skill.slug);
                     return (
-                      <li key={skill.id} className="rounded-md border border-line bg-paper p-3.5">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="text-[12px] font-medium leading-snug text-ink">
-                            <Link href={`/skills/${skill.slug}`} className="hover:underline underline-offset-4">
+                      <li key={skill.id} className="border-b border-line/70 last:border-0">
+                        <Link
+                          href={`/skills/${skill.slug}`}
+                          className="group flex items-center gap-2.5 py-2.5"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[12.5px] font-medium text-ink group-hover:underline group-hover:underline-offset-4">
                               {skill.name}
-                            </Link>
-                          </h3>
+                            </span>
+                            <span className="mt-0.5 flex items-center gap-1.5 text-[9.5px] text-faint">
+                              <span className="capitalize">{skill.skillType.replace("_", " ")}</span>
+                              <span aria-hidden>·</span>
+                              <span className="capitalize">{skill.difficulty}</span>
+                              {evidence ? (
+                                <>
+                                  <span aria-hidden>·</span>
+                                  <VerificationBadge status={evidence.verificationStatus} />
+                                  <ConfidenceBadge confidence={evidence.confidence} />
+                                </>
+                              ) : user ? (
+                                <>
+                                  <span aria-hidden>·</span>
+                                  <span>No evidence</span>
+                                </>
+                              ) : null}
+                            </span>
+                          </span>
                           {evidence && evidence.score > 0 ? (
-                            <span className="shrink-0 text-[12px] font-medium tabular text-graphite">
+                            <span className="shrink-0 text-[13px] font-medium tabular text-graphite">
                               {evidence.score}
                             </span>
                           ) : (
-                            <span className="shrink-0 text-[9px] text-faint">—</span>
+                            <span className="shrink-0 text-[10px] text-faint transition-transform group-hover:translate-x-0.5" aria-hidden>
+                              →
+                            </span>
                           )}
-                        </div>
-                        {skill.description && (
-                          <p className="mt-1 line-clamp-2 text-[10.5px] leading-relaxed text-muted">
-                            {skill.description?.slice(0, 180)}
-                          </p>
-                        )}
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          <Badge variant="outline" size="sm" className="capitalize">
-                            {skill.skillType.replace("_", " ")}
-                          </Badge>
-                          <span className="text-[9px] capitalize text-faint">{skill.difficulty}</span>
-                          {evidence ? (
-                            <>
-                              <VerificationBadge status={evidence.verificationStatus} />
-                              <ConfidenceBadge confidence={evidence.confidence} />
-                            </>
-                          ) : user ? (
-                            <span className="text-[9px] text-faint">No evidence</span>
-                          ) : null}
-                        </div>
-                        {skill.whyEmployersWant && (
-                          <p className="mt-2 border-t border-line pt-2 text-[9.5px] leading-relaxed text-faint">
-                            {skill.whyEmployersWant.slice(0, 200)}
-                          </p>
-                        )}
+                        </Link>
                       </li>
                     );
                   })}

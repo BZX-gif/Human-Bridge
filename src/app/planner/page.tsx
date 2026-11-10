@@ -22,11 +22,12 @@ export default async function PlannerPage() {
   let loaded: { data: Awaited<ReturnType<typeof getPlannerData>>; weeklyHours: number } | null = null;
   try {
     const db = await getDb();
-    const [record] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
-    loaded = {
-      data: await getPlannerData(user.id),
-      weeklyHours: record?.weeklyHours ?? 5,
-    };
+    // Availability and planner data are independent — one wave.
+    const [records, data] = await Promise.all([
+      db.select().from(users).where(eq(users.id, user.id)).limit(1),
+      getPlannerData(user.id),
+    ]);
+    loaded = { data, weeklyHours: records[0]?.weeklyHours ?? 5 };
   } catch (error) {
     console.error("[planner] failed to load", error);
   }

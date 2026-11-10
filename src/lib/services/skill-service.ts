@@ -1,5 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
+import { requestMemo } from "@/lib/server-cache";
 import { skillEvidence, skillPassports, skillScores, skills } from "@/db/schema";
 import { recordEvent } from "@/lib/events";
 import { clampScore } from "@/lib/assessment/rubric-engine";
@@ -52,15 +53,27 @@ export async function applyAttemptEvidence(
   // Clear this attempt's previous evidence so re-evaluation does not double count.
   await db.delete(skillEvidence).where(eq(skillEvidence.attemptId, attemptId));
 
-  const touchedSkillIds: number[] = [];
+  // One lookup for every touched skill, then ONE batched insert — not an
+  // insert round-trip per breakdown entry.
+  const slugs = Array.from(new Set(result.skillScores.map((s) => s.skillSlug)));
+  const idRows =
+    slugs.length > 0
+      ? await db
+          .select({ id: skills.id, slug: skills.slug })
+          .from(skills)
+          .where(inArray(skills.slug, slugs))
+      : [];
+  const idBySlug = new Map(idRows.map((row) => [row.slug, row.id]));
 
+  const touchedSkillIds: number[] = [];
+  const evidenceValues: (typeof skillEvidence.$inferInsert)[] = [];
   for (const skill of result.skillScores) {
-    const skillId = await skillIdBySlug(skill.skillSlug);
-    if (skillId === null) continue;
+    const skillId = idBySlug.get(skill.skillSlug);
+    if (skillId === undefined) continue;
     touchedSkillIds.push(skillId);
 
     for (const entry of skill.breakdown) {
-      await db.insert(skillEvidence).values({
+      evidenceValues.push({
         userId,
         skillId,
         source: "ASSESSED",
@@ -71,6 +84,9 @@ export async function applyAttemptEvidence(
         attemptId,
       });
     }
+  }
+  if (evidenceValues.length > 0) {
+    await db.insert(skillEvidence).values(evidenceValues);
   }
 
   await recomputeSkillScores(userId, Array.from(new Set(touchedSkillIds)));
@@ -269,9 +285,10 @@ export interface UserSkillView {
   lastAssessedAt: Date | null;
 }
 
-export async function getUserSkills(userId: number): Promise<UserSkillView[]> {
-  const db = await getDb();
-  const rows = await db
+export const getUserSkills = requestMemo(
+  async (userId: number): Promise<UserSkillView[]> => {
+    const db = await getDb();
+    const rows = await db
     .select({
       skillId: skillScores.skillId,
       slug: skills.slug,
@@ -285,44 +302,53 @@ export async function getUserSkills(userId: number): Promise<UserSkillView[]> {
       lastVerifiedAt: skillScores.lastVerifiedAt,
       lastAssessedAt: skillScores.lastAssessedAt,
     })
-    .from(skillScores)
-    .innerJoin(skills, eq(skills.id, skillScores.skillId))
-    .where(eq(skillScores.userId, userId));
+      .from(skillScores)
+      .innerJoin(skills, eq(skills.id, skillScores.skillId))
+      .where(eq(skillScores.userId, userId));
 
-  return rows.sort((a, b) => b.score - a.score);
-}
+    return rows.sort((a, b) => b.score - a.score);
+  },
+);
 
-export async function getSkillEvidence(userId: number, skillId: number) {
+export const getSkillEvidence = requestMemo(async (userId: number, skillId: number) => {
   const db = await getDb();
   return db
     .select()
     .from(skillEvidence)
     .where(and(eq(skillEvidence.userId, userId), eq(skillEvidence.skillId, skillId)));
-}
+});
 
 /** Ensure a passport row exists and refresh its readiness figure. */
 export async function refreshPassport(userId: number): Promise<void> {
   const db = await getDb();
   const { users, careerSkills } = await import("@/db/schema");
 
-  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const [[user], userSkills] = await Promise.all([
+    db.select().from(users).where(eq(users.id, userId)).limit(1),
+    getUserSkills(userId),
+  ]);
   if (!user) return;
 
-  const userSkills = await getUserSkills(userId);
   const skillBySlug = new Map(userSkills.map((s) => [s.slug, s]));
+
+  // The requirement list and the existing passport row are independent.
+  const [required, existingRows] = await Promise.all([
+    user.targetCareerId
+      ? db
+          .select({
+            slug: skills.slug,
+            importance: careerSkills.importance,
+            requiredScore: careerSkills.requiredScore,
+          })
+          .from(careerSkills)
+          .innerJoin(skills, eq(skills.id, careerSkills.skillId))
+          .where(eq(careerSkills.careerId, user.targetCareerId))
+      : Promise.resolve([]),
+    db.select().from(skillPassports).where(eq(skillPassports.userId, userId)).limit(1),
+  ]);
 
   let readiness = 0;
   if (user.targetCareerId) {
-    const required = await db
-      .select({
-        slug: skills.slug,
-        importance: careerSkills.importance,
-        requiredScore: careerSkills.requiredScore,
-      })
-      .from(careerSkills)
-      .innerJoin(skills, eq(skills.id, careerSkills.skillId))
-      .where(eq(careerSkills.careerId, user.targetCareerId));
-
     readiness = computeCareerReadiness(required, skillBySlug);
   } else if (userSkills.length > 0) {
     readiness = clampScore(
@@ -330,11 +356,7 @@ export async function refreshPassport(userId: number): Promise<void> {
     );
   }
 
-  const [existing] = await db
-    .select()
-    .from(skillPassports)
-    .where(eq(skillPassports.userId, userId))
-    .limit(1);
+  const [existing] = existingRows;
 
   if (existing) {
     await db

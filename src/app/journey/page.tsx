@@ -6,7 +6,7 @@ import { ArrowRight, Compass, Info, Map, Target } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
-import { ensureRoadmapForUser, getRoadmapForUser } from "@/lib/services/roadmap-service";
+import { ensureRoadmapForUser, getRoadmapForUser, loadRoadmapForUser } from "@/lib/services/roadmap-service";
 import { listCareerSummaries } from "@/lib/services/career-service";
 import { RoadmapWorkspace } from "@/components/journey/RoadmapWorkspace";
 import { ButtonLink } from "@/components/ui/Button";
@@ -41,7 +41,8 @@ export default async function JourneyPage() {
       await ensureRoadmapForUser(user.id, record.targetCareerId, {
         hoursPerWeek: weeklyHours,
       });
-      roadmap = await getRoadmapForUser(user.id);
+      // Fresh read: this request just created the roadmap.
+      roadmap = await loadRoadmapForUser(user.id);
     }
 
     if (!roadmap) careers = (await listCareerSummaries()).slice(0, 4);

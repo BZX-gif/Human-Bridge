@@ -16,15 +16,14 @@ export const metadata: Metadata = {
 };
 
 export default async function CareersPage() {
-  const user = await getCurrentUser();
-  let careers: CareerSummary[] = [];
-  let unavailable = false;
-
-  try {
-    careers = await listCareerSummaries();
-  } catch {
-    unavailable = true;
-  }
+  // Session and catalogue are independent — one wave.
+  const [user, result] = await Promise.all([
+    getCurrentUser(),
+    listCareerSummaries()
+      .then((careers): { careers: CareerSummary[]; unavailable: false } => ({ careers, unavailable: false }))
+      .catch((): { careers: CareerSummary[]; unavailable: true } => ({ careers: [], unavailable: true })),
+  ]);
+  const { careers, unavailable } = result;
 
   return (
     <main id="main-content" className="bg-paper pt-16">

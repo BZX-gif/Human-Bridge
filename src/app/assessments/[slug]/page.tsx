@@ -43,14 +43,13 @@ export default async function AssessmentBriefingPage({
     );
   }
 
-  let blueprint;
-  try {
-    blueprint = await getBlueprint(slug);
-  } catch {
-    notFound();
-  }
+  // Blueprint and session are independent — fetch together.
+  const [blueprint, user] = await Promise.all([
+    getBlueprint(slug).catch(() => null),
+    getCurrentUser(),
+  ]);
+  if (!blueprint) notFound();
 
-  const user = await getCurrentUser();
   const scenario = getScenario(slug);
   const skills = Array.from(
     new Set(blueprint.sections.flatMap((s) => s.items.flatMap((i) => i.skillSlugs))),

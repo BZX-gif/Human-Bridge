@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
+import { requestMemo } from "@/lib/server-cache";
 import { getDb } from "@/db";
 import { applications, companies, jobSkills, jobs, skills } from "@/db/schema";
 import { ApiError } from "@/lib/api/response";
@@ -29,7 +30,7 @@ export interface JobSummary {
   requiredSkills: RequiredSkill[];
 }
 
-export async function listJobs(): Promise<JobSummary[]> {
+export async function loadJobs(): Promise<JobSummary[]> {
   const db = await getDb();
   const rows = await db
     .select({ job: jobs, company: companies })
@@ -60,6 +61,10 @@ export async function listJobs(): Promise<JobSummary[]> {
   }));
 }
 
+export const listJobs = requestMemo(loadJobs);
+
+// NOTE: not memoized — array arguments never dedupe by identity. The callers
+// (listJobs / getJob) are memoized instead, which covers the duplication.
 export async function getJobSkills(jobIds: number[]): Promise<Map<number, RequiredSkill[]>> {
   const db = await getDb();
   const map = new Map<number, RequiredSkill[]>();
@@ -92,7 +97,7 @@ export async function getJobSkills(jobIds: number[]): Promise<Map<number, Requir
   return map;
 }
 
-export async function getJob(jobId: number) {
+export async function loadJob(jobId: number) {
   const db = await getDb();
   const [row] = await db
     .select({ job: jobs, company: companies })
@@ -104,6 +109,8 @@ export async function getJob(jobId: number) {
   const skillMap = await getJobSkills([jobId]);
   return { ...row, requiredSkills: skillMap.get(jobId) ?? [] };
 }
+
+export const getJob = requestMemo(loadJob);
 
 export async function toCandidateSkills(userId: number): Promise<CandidateSkill[]> {
   const userSkills = await getUserSkills(userId);
@@ -121,11 +128,15 @@ export interface JobWithMatch extends JobSummary {
   match: MatchResult | null;
 }
 
-export async function listJobsWithMatch(userId: number | null): Promise<JobWithMatch[]> {
-  const jobList = await listJobs();
-  if (userId === null) return jobList.map((job) => ({ ...job, match: null }));
+export async function loadJobsWithMatch(userId: number | null): Promise<JobWithMatch[]> {
+  const [jobList, candidate] = await Promise.all([
+    listJobs(),
+    userId === null ? Promise.resolve(null) : toCandidateSkills(userId),
+  ]);
+  if (userId === null || candidate === null) {
+    return jobList.map((job) => ({ ...job, match: null }));
+  }
 
-  const candidate = await toCandidateSkills(userId);
   return jobList
     .map((job) => ({
       ...job,
@@ -133,6 +144,8 @@ export async function listJobsWithMatch(userId: number | null): Promise<JobWithM
     }))
     .sort((a, b) => (b.match?.score ?? 0) - (a.match?.score ?? 0));
 }
+
+export const listJobsWithMatch = requestMemo(loadJobsWithMatch);
 
 export async function applyToJob(
   userId: number,

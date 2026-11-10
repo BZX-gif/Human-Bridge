@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { requestMemo } from "@/lib/server-cache";
 import { getDb } from "@/db";
 import {
   careerRoadmaps,
@@ -91,35 +92,35 @@ async function loadCareerData(careerId: number) {
   const [career] = await db.select().from(careers).where(eq(careers.id, careerId)).limit(1);
   if (!career) throw new ApiError("NOT_FOUND", "Career not found.");
 
-  let trackSlug: string | null = null;
-  if (career.trackId) {
-    const [track] = await db
-      .select({ slug: careerTracks.slug })
-      .from(careerTracks)
-      .where(eq(careerTracks.id, career.trackId))
-      .limit(1);
-    trackSlug = track?.slug ?? null;
-  }
-
-  const skillRows = await db
-    .select({
-      skillId: skills.id,
-      slug: skills.slug,
-      name: skills.name,
-      importance: careerSkills.importance,
-      requiredLevel: careerSkills.requiredLevel,
-      requiredScore: careerSkills.requiredScore,
-      skillType: skills.skillType,
-      difficulty: skills.difficulty,
-      whyEmployersWant: skills.whyEmployersWant,
-      categoryLabel: careerSkills.categoryLabel,
-    })
-    .from(careerSkills)
-    .innerJoin(skills, eq(skills.id, careerSkills.skillId))
-    .where(eq(careerSkills.careerId, careerId))
-    .orderBy(asc(careerSkills.order));
-
-  const projectRows = await db.select().from(projects).where(eq(projects.careerId, careerId));
+  // Track, skills and projects are independent once the career is known.
+  const [trackRows, skillRows, projectRows] = await Promise.all([
+    career.trackId
+      ? db
+          .select({ slug: careerTracks.slug })
+          .from(careerTracks)
+          .where(eq(careerTracks.id, career.trackId))
+          .limit(1)
+      : Promise.resolve([]),
+    db
+      .select({
+        skillId: skills.id,
+        slug: skills.slug,
+        name: skills.name,
+        importance: careerSkills.importance,
+        requiredLevel: careerSkills.requiredLevel,
+        requiredScore: careerSkills.requiredScore,
+        skillType: skills.skillType,
+        difficulty: skills.difficulty,
+        whyEmployersWant: skills.whyEmployersWant,
+        categoryLabel: careerSkills.categoryLabel,
+      })
+      .from(careerSkills)
+      .innerJoin(skills, eq(skills.id, careerSkills.skillId))
+      .where(eq(careerSkills.careerId, careerId))
+      .orderBy(asc(careerSkills.order)),
+    db.select().from(projects).where(eq(projects.careerId, careerId)),
+  ]);
+  const trackSlug: string | null = trackRows[0]?.slug ?? null;
 
   const skillIds = skillRows.map((row) => row.skillId);
   const resourceRows =
@@ -168,10 +169,11 @@ function toSkillInputs(rows: Awaited<ReturnType<typeof loadCareerData>>["skillRo
 }
 
 /** Build an in-memory preview. Used on career pages; writes nothing. */
-export async function previewRoadmapForCareer(
-  careerId: number,
-  options: { hoursPerWeek?: number; startingLevel?: StartingLevel } = {},
-): Promise<PlannedRoadmap> {
+export const previewRoadmapForCareer = requestMemo(
+  async (
+    careerId: number,
+    options: { hoursPerWeek?: number; startingLevel?: StartingLevel } = {},
+  ): Promise<PlannedRoadmap> => {
   const data = await loadCareerData(careerId);
   return buildRoadmap({
     career: {
@@ -187,7 +189,8 @@ export async function previewRoadmapForCareer(
     startingLevel: options.startingLevel ?? "beginner",
     hoursPerWeek: options.hoursPerWeek ?? 5,
   });
-}
+  },
+);
 
 /**
  * Create (or return) the signed-in user's roadmap for a career.
@@ -201,14 +204,17 @@ export async function ensureRoadmapForUser(
   options: { hoursPerWeek?: number; startingLevel?: StartingLevel; regenerate?: boolean } = {},
 ): Promise<{ roadmapId: number; created: boolean }> {
   const db = await getDb();
-  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const [userRows, existingRows] = await Promise.all([
+    db.select().from(users).where(eq(users.id, userId)).limit(1),
+    db
+      .select({ id: careerRoadmaps.id, status: careerRoadmaps.status })
+      .from(careerRoadmaps)
+      .where(and(eq(careerRoadmaps.userId, userId), eq(careerRoadmaps.careerId, careerId)))
+      .limit(1),
+  ]);
+  const [user] = userRows;
   if (!user) throw new ApiError("NOT_FOUND", "User not found.");
-
-  const [existing] = await db
-    .select({ id: careerRoadmaps.id, status: careerRoadmaps.status })
-    .from(careerRoadmaps)
-    .where(and(eq(careerRoadmaps.userId, userId), eq(careerRoadmaps.careerId, careerId)))
-    .limit(1);
+  const [existing] = existingRows;
 
   if (existing && !options.regenerate && existing.status === "active") {
     return { roadmapId: existing.id, created: false };
@@ -261,43 +267,45 @@ export async function ensureRoadmapForUser(
     })
     .returning();
 
-  const titleToId = new Map<string, number>();
-
-  for (let stageIndex = 0; stageIndex < plan.stages.length; stageIndex++) {
-    const stage = plan.stages[stageIndex];
-    const [stageRow] = await db
-      .insert(roadmapStages)
-      .values({
+  // Batched writes: one INSERT for all stages, one for all milestones.
+  // The old code issued ~25 sequential round-trips here (~1s+ on hosted Postgres).
+  const insertedStages = await db
+    .insert(roadmapStages)
+    .values(
+      plan.stages.map((stage, stageIndex) => ({
         roadmapId: roadmap.id,
         title: stage.title,
         description: stage.description,
         ordering: stageIndex,
         estimatedWeeks: stage.estimatedWeeks,
-      })
-      .returning();
+      })),
+    )
+    .returning();
+  // Match by explicit ordering, never by RETURNING order (which is unspecified).
+  const stageIdByOrder = new Map(insertedStages.map((row) => [row.ordering, row.id]));
 
-    for (const milestone of stage.milestones) {
-      const [row] = await db
-        .insert(roadmapMilestones)
-        .values({
-          roadmapId: roadmap.id,
-          stageId: stageRow.id,
-          title: milestone.title,
-          objective: milestone.objective,
-          whyItMatters: milestone.whyItMatters,
-          skillSlugs: milestone.skillSlugs,
-          resources: milestone.resources,
-          exercises: milestone.exercises,
-          projectSlugs: milestone.projectSlugs,
-          estimatedHours: milestone.estimatedHours,
-          completionCriteria: milestone.completionCriteria,
-          dependsOn: milestone.dependsOn,
-          status: milestone.status === "completed" ? "completed" : "not_started",
-          ordering: milestone.ordering,
-        })
-        .returning();
-      titleToId.set(milestone.title, row.id);
-    }
+  const milestoneValues = plan.stages.flatMap((stage, stageIndex) =>
+    stage.milestones.map((milestone) => ({
+      roadmapId: roadmap.id,
+      stageId: stageIdByOrder.get(stageIndex) ?? insertedStages[stageIndex].id,
+      title: milestone.title,
+      objective: milestone.objective,
+      whyItMatters: milestone.whyItMatters,
+      skillSlugs: milestone.skillSlugs,
+      resources: milestone.resources,
+      exercises: milestone.exercises,
+      projectSlugs: milestone.projectSlugs,
+      estimatedHours: milestone.estimatedHours,
+      completionCriteria: milestone.completionCriteria,
+      dependsOn: milestone.dependsOn,
+      status: (milestone.status === "completed" ? "completed" : "not_started") as
+        | "completed"
+        | "not_started",
+      ordering: milestone.ordering,
+    })),
+  );
+  if (milestoneValues.length > 0) {
+    await db.insert(roadmapMilestones).values(milestoneValues);
   }
 
   await db
@@ -400,21 +408,33 @@ function assembleRoadmap(
 }
 
 /** Active roadmap for a user, preferring their current target career. */
-export async function getRoadmapForUser(
+/**
+ * Uncached roadmap read. Used after writes in the same request (roadmap
+ * creation, milestone updates) where the memoized `getRoadmapForUser` would
+ * correctly-but-stalely return the pre-write result.
+ */
+export async function loadRoadmapForUser(
   userId: number,
   careerId?: number,
 ): Promise<RoadmapView | null> {
   const db = await getDb();
-  const [user] = await db
-    .select({ targetCareerId: users.targetCareerId })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
+  // The user's target and their latest active roadmap are independent.
+  const [userRows, latestRows] = await Promise.all([
+    db.select({ targetCareerId: users.targetCareerId }).from(users).where(eq(users.id, userId)).limit(1),
+    db
+      .select()
+      .from(careerRoadmaps)
+      .where(and(eq(careerRoadmaps.userId, userId), eq(careerRoadmaps.status, "active")))
+      .orderBy(desc(careerRoadmaps.updatedAt))
+      .limit(1),
+  ]);
 
-  const preferredCareerId = careerId ?? user?.targetCareerId ?? null;
+  const preferredCareerId = careerId ?? userRows[0]?.targetCareerId ?? null;
 
-  let roadmap: typeof careerRoadmaps.$inferSelect | undefined;
-  if (preferredCareerId) {
+  let roadmap: typeof careerRoadmaps.$inferSelect | undefined = latestRows[0];
+  if (preferredCareerId && roadmap?.careerId !== preferredCareerId) {
+    // Latest plan is for another career — fetch the preferred one explicitly.
+    // (Same preference order as before: preferred career first, else latest.)
     [roadmap] = await db
       .select()
       .from(careerRoadmaps)
@@ -426,35 +446,30 @@ export async function getRoadmapForUser(
         ),
       )
       .limit(1);
-  }
-  if (!roadmap) {
-    [roadmap] = await db
-      .select()
-      .from(careerRoadmaps)
-      .where(and(eq(careerRoadmaps.userId, userId), eq(careerRoadmaps.status, "active")))
-      .orderBy(desc(careerRoadmaps.updatedAt))
-      .limit(1);
+    if (!roadmap) roadmap = latestRows[0];
   }
   if (!roadmap) return null;
 
-  const [career] = await db
-    .select({ name: careers.name, slug: careers.slug })
-    .from(careers)
-    .where(eq(careers.id, roadmap.careerId))
-    .limit(1);
+  // Career, stages and milestones are independent once the roadmap is known.
+  const [careerRows, stageRows, milestoneRows] = await Promise.all([
+    db
+      .select({ name: careers.name, slug: careers.slug })
+      .from(careers)
+      .where(eq(careers.id, roadmap.careerId))
+      .limit(1),
+    db
+      .select()
+      .from(roadmapStages)
+      .where(eq(roadmapStages.roadmapId, roadmap.id))
+      .orderBy(asc(roadmapStages.ordering)),
+    db
+      .select()
+      .from(roadmapMilestones)
+      .where(eq(roadmapMilestones.roadmapId, roadmap.id))
+      .orderBy(asc(roadmapMilestones.ordering)),
+  ]);
+  const [career] = careerRows;
   if (!career) return null;
-
-  const stageRows = await db
-    .select()
-    .from(roadmapStages)
-    .where(eq(roadmapStages.roadmapId, roadmap.id))
-    .orderBy(asc(roadmapStages.ordering));
-
-  const milestoneRows = await db
-    .select()
-    .from(roadmapMilestones)
-    .where(eq(roadmapMilestones.roadmapId, roadmap.id))
-    .orderBy(asc(roadmapMilestones.ordering));
 
   const taskRows =
     milestoneRows.length > 0
@@ -486,6 +501,9 @@ export async function getRoadmapForUser(
 
   return assembleRoadmap(roadmap, career, stageRows, milestoneRows, taskCounts);
 }
+
+/** Request-deduped roadmap read for pages and GET routes. */
+export const getRoadmapForUser = requestMemo(loadRoadmapForUser);
 
 export async function updateMilestoneStatus(
   userId: number,
@@ -527,7 +545,8 @@ export async function updateMilestoneStatus(
     payload: { milestoneId, roadmapId: row.roadmap.id, status, title: row.milestone.title },
   });
 
-  return getRoadmapForUser(userId, row.roadmap.careerId);
+  // Fresh read: this request just wrote, so bypass the request memo.
+  return loadRoadmapForUser(userId, row.roadmap.careerId);
 }
 
 /** Compact context for the dashboard and mentor. Never includes unverified claims. */

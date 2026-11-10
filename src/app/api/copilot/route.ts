@@ -41,19 +41,21 @@ export async function POST(request: Request) {
     }
 
     const db = await getDb();
-    const [record] = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
-    const userSkills = await getUserSkills(user.id);
+    const [recordRows, userSkills] = await Promise.all([
+      db.select().from(users).where(eq(users.id, user.id)).limit(1),
+      getUserSkills(user.id),
+    ]);
+    const [record] = recordRows;
 
     let careerName = "not selected";
     let gapContext = "No target career selected yet.";
     if (record?.targetCareerId) {
-      const [career] = await db
-        .select()
-        .from(careers)
-        .where(eq(careers.id, record.targetCareerId))
-        .limit(1);
-      careerName = career?.name ?? "not selected";
-      const gaps = await getCareerGapForUser(record.targetCareerId, user.id);
+      const targetCareerId = record.targetCareerId;
+      const [careerRows, gaps] = await Promise.all([
+        db.select().from(careers).where(eq(careers.id, targetCareerId)).limit(1),
+        getCareerGapForUser(targetCareerId, user.id),
+      ]);
+      careerName = careerRows[0]?.name ?? "not selected";
       gapContext = gaps
         .map(
           (g) =>

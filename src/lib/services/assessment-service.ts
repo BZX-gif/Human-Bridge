@@ -1,4 +1,5 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { requestMemo } from "@/lib/server-cache";
 import { getDb } from "@/db";
 import {
   assessmentAttempts,
@@ -71,7 +72,7 @@ export interface PublicBlueprint {
 }
 
 /** Load a published blueprint by slug (latest version) or by numeric id. */
-export async function getBlueprint(idOrSlug: string): Promise<PublicBlueprint> {
+export async function loadBlueprint(idOrSlug: string): Promise<PublicBlueprint> {
   const db = await getDb();
   const numericId = Number(idOrSlug);
 
@@ -98,46 +99,49 @@ export async function getBlueprint(idOrSlug: string): Promise<PublicBlueprint> {
     throw new ApiError("ASSESSMENT_NOT_FOUND", "Assessment not found.");
   }
 
-  const sectionRows = await db
-    .select()
+  // Sections + items in ONE query via a left join (sections without items
+  // still appear, with a null item) instead of two sequential round-trips.
+  const sectionItemRows = await db
+    .select({ section: assessmentSections, item: assessmentItems })
     .from(assessmentSections)
+    .leftJoin(assessmentItems, eq(assessmentItems.sectionId, assessmentSections.id))
     .where(eq(assessmentSections.blueprintId, blueprint.id))
-    .orderBy(assessmentSections.order);
+    .orderBy(asc(assessmentSections.order), asc(assessmentItems.order));
 
-  const sectionIds = sectionRows.map((s) => s.id);
-  const itemRows = sectionIds.length
-    ? await db
-        .select()
-        .from(assessmentItems)
-        .where(inArray(assessmentItems.sectionId, sectionIds))
-        .orderBy(assessmentItems.order)
-    : [];
-
-  const sections: PublicSection[] = sectionRows.map((section) => ({
-    id: section.id,
-    key: section.key,
-    kind: section.kind,
-    title: section.title,
-    instructions: section.instructions,
-    weight: section.weight,
-    order: section.order,
-    timeLimitMinutes: section.timeLimitMinutes,
-    config: (section.config as Record<string, unknown>) ?? {},
-    items: itemRows
-      .filter((item) => item.sectionId === section.id)
-      .map((item) => ({
-        // answerKey is deliberately NOT included.
-        id: item.id,
-        key: item.key,
-        type: item.type,
-        prompt: item.prompt,
-        helperText: item.helperText,
-        payload: (item.payload as ItemPayload) ?? {},
-        skillSlugs: (item.skillSlugs as string[]) ?? [],
-        points: item.points,
-        order: item.order,
-      })),
-  }));
+  const bySection = new Map<number, PublicSection>();
+  for (const row of sectionItemRows) {
+    let section = bySection.get(row.section.id);
+    if (!section) {
+      section = {
+        id: row.section.id,
+        key: row.section.key,
+        kind: row.section.kind,
+        title: row.section.title,
+        instructions: row.section.instructions,
+        weight: row.section.weight,
+        order: row.section.order,
+        timeLimitMinutes: row.section.timeLimitMinutes,
+        config: (row.section.config as Record<string, unknown>) ?? {},
+        items: [],
+      };
+      bySection.set(row.section.id, section);
+    }
+    // answerKey is deliberately NOT included.
+    if (row.item) {
+      section.items.push({
+        id: row.item.id,
+        key: row.item.key,
+        type: row.item.type,
+        prompt: row.item.prompt,
+        helperText: row.item.helperText,
+        payload: (row.item.payload as ItemPayload) ?? {},
+        skillSlugs: (row.item.skillSlugs as string[]) ?? [],
+        points: row.item.points,
+        order: row.item.order,
+      });
+    }
+  }
+  const sections: PublicSection[] = Array.from(bySection.values());
 
   return {
     id: blueprint.id,
@@ -159,6 +163,8 @@ export async function getBlueprint(idOrSlug: string): Promise<PublicBlueprint> {
     sections,
   };
 }
+
+export const getBlueprint = requestMemo(loadBlueprint);
 
 export interface StartAttemptResult {
   attemptId: number;
