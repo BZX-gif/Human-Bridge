@@ -560,7 +560,7 @@ function resourceViews(resources: RoadmapResourceInput[] | undefined, skill: Roa
     return [
       {
         title: `No curated resource for ${skill.name} yet`,
-        note: "Use the practice exercises below, or ask the mentor to explain the concept. Human Bridge does not invent course links.",
+        note: "Use the practice exercises below, or ask Paper to explain the concept. Human Bridge does not invent course links.",
       },
     ];
   }
@@ -809,7 +809,7 @@ export function buildRoadmap(input: BuildRoadmapInput): PlannedRoadmap {
       exercises: [
         "Record a three-minute walkthrough of one project without notes.",
         "Prepare answers to: what was hardest, what failed, what would you change.",
-        "Do one mock interview with a friend or the Human Bridge mentor.",
+        "Do one mock interview with a friend or Paper.",
       ],
       projectSlugs: [],
       estimatedHours: 4,

@@ -9,8 +9,8 @@ import { ErrorState } from "@/components/ui/States";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Mentor",
-  description: "Context-aware career guidance grounded in your own plan and evidence.",
+  title: "Paper",
+  description: "Thoughtful career guidance grounded in your own plan and evidence.",
 };
 
 export default async function MentorPage() {
@@ -43,9 +43,9 @@ export default async function MentorPage() {
   if (!summary) {
     return (
       <main id="main-content" className="app-page">
-        <p className="eyebrow mb-3">Mentor</p>
+        <p className="eyebrow mb-3">Paper</p>
         <h1 className="font-display text-[clamp(2rem,4vw,2.9rem)] leading-tight">
-          The mentor is unavailable right now.
+          Paper is unavailable right now.
         </h1>
         <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-muted">
           Your plan and evidence are unaffected. You can still work from your roadmap and planner.

@@ -24,7 +24,7 @@ const TABS: { id: Tab; label: string; icon: typeof Map }[] = [
   { id: "roadmap", label: "Roadmap", icon: Map },
   { id: "planner", label: "Planner", icon: CalendarDays },
   { id: "portfolio", label: "Portfolio", icon: FolderGit2 },
-  { id: "mentor", label: "Mentor", icon: MessageSquare },
+  { id: "mentor", label: "Paper", icon: MessageSquare },
 ];
 
 const STAGES = [
@@ -336,7 +336,7 @@ export function ProductPreview() {
           <div key="mentor" className="animate-fade">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <p className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-faint">Mentor</p>
+                <p className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-faint">Paper</p>
                 <p className="mt-0.5 font-display text-[20px] leading-tight">Grounded in your plan</p>
               </div>
               <span className="rounded-[3px] border border-line bg-paper-2 px-1.5 py-0.5 text-[9px] text-muted">
@@ -374,7 +374,7 @@ export function ProductPreview() {
               ))}
             </div>
             <p className="mt-3 text-[8.5px] leading-relaxed text-faint">
-              Illustrative conversation. The mentor never invents scores, resources or job offers, and
+              Illustrative conversation. Paper never invents scores, resources or job offers, and
               works without AI using your recorded plan.
             </p>
           </div>

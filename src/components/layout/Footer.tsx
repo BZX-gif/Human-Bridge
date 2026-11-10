@@ -20,7 +20,7 @@ const columns = [
       { label: "Skill passport", href: "/passport" },
       { label: "Portfolio", href: "/portfolio" },
       { label: "Opportunities", href: "/jobs" },
-      { label: "Career mentor", href: "/mentor" },
+      { label: "Paper", href: "/mentor" },
     ],
   },
   {
