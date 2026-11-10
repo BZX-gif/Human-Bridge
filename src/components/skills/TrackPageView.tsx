@@ -37,24 +37,24 @@ export function TrackPageView({
   }
 
   return (
-    <main className="min-h-screen bg-[#f8fafc] pt-16">
-      <div className="border-b border-slate-100 bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
-          <Link href="/skills" className="text-xs font-semibold text-[#1a56ff] hover:underline">
+    <main className="min-h-full bg-paper-2">
+      <div className="border-b border-line bg-paper">
+        <div className="mx-auto max-w-[1180px] px-4 pb-8 pt-8 sm:px-7 sm:pt-10 lg:px-10">
+          <Link href="/skills" className="text-xs font-semibold text-ink hover:underline">
             ← All skills
           </Link>
           <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight text-slate-900">{track.name}</h1>
+              <h1 className="font-display text-[clamp(2.1rem,4.5vw,3rem)] leading-[1.02] tracking-[-0.02em] text-ink">{track.name}</h1>
               {track.category && (
-                <p className="mt-2 text-sm font-medium text-[#1a56ff]">{track.category}</p>
+                <p className="mt-2 text-sm font-medium text-ink">{track.category}</p>
               )}
               {track.description && (
-                <p className="mt-3 max-w-2xl leading-relaxed text-slate-600">{track.description}</p>
+                <p className="mt-3 max-w-2xl leading-relaxed text-graphite">{track.description}</p>
               )}
             </div>
             {track.icon && (
-              <div className="hidden rounded-2xl bg-[#eef3ff] p-4 text-[#1a56ff] sm:block">
+              <div className="hidden rounded-lg bg-paper-2 p-4 text-ink sm:block">
                 <Layers size={28} aria-hidden />
               </div>
             )}
@@ -86,7 +86,7 @@ export function TrackPageView({
         </div>
       </div>
 
-      <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-[1180px] space-y-6 px-4 py-7 sm:px-7 lg:px-10">
         {/* Capability metadata strip */}
         <section className="grid gap-3 sm:grid-cols-4">
           {[
@@ -97,14 +97,14 @@ export function TrackPageView({
           ].map(({ label, value, icon: Icon }) => (
             <div
               key={label}
-              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4"
+              className="flex items-center gap-3 rounded-lg border border-line bg-paper p-4"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eef3ff] text-[#1a56ff]">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-paper-2 text-ink">
                 <Icon size={16} aria-hidden />
               </span>
               <div>
-                <p className="text-xl font-bold tabular-nums text-slate-900">{value}</p>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                <p className="text-xl font-bold tabular-nums text-ink">{value}</p>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-muted">
                   {label}
                 </p>
               </div>
@@ -113,12 +113,12 @@ export function TrackPageView({
         </section>
 
         {/* Skills by entry difficulty */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
-            <Target size={15} className="text-[#1a56ff]" aria-hidden />
+        <section className="rounded-lg border border-line bg-paper p-6">
+          <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
+            <Target size={15} className="text-ink" aria-hidden />
             Skills in this track
           </h2>
-          <p className="mb-5 text-xs text-slate-500">
+          <p className="mb-5 text-xs text-muted">
             {readiness
               ? `Your measured score is shown against ${assessedCount} of ${skills.length} track skills.`
               : "Sign in to see your own scores against this track."}
@@ -132,26 +132,26 @@ export function TrackPageView({
               if (list.length === 0) return null;
               return (
                 <div key={difficulty} className="mb-6 last:mb-0">
-                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted">
                     {difficulty}
                   </h3>
                   <ul className="grid gap-3 sm:grid-cols-2">
                     {list.map((skill) => (
                       <li
                         key={skill.id}
-                        className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4"
+                        className="rounded-lg border border-line bg-paper-2/50 p-4"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <Link
                             href={`/skills/${skill.slug}`}
-                            className="text-sm font-semibold text-slate-900 hover:text-[#1a56ff]"
+                            className="text-sm font-semibold text-ink hover:text-ink"
                           >
                             {skill.name}
                           </Link>
                           <LevelBadge level={skill.requiredLevel} />
                         </div>
                         {skill.description && (
-                          <p className="mt-1.5 text-xs leading-relaxed text-slate-500 line-clamp-2">
+                          <p className="mt-1.5 text-xs leading-relaxed text-muted line-clamp-2">
                             {skill.description}
                           </p>
                         )}
@@ -173,9 +173,9 @@ export function TrackPageView({
                           )}
                         </div>
                         {skill.candidateScore !== null && (
-                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-paper-3">
                             <div
-                              className="h-full rounded-full bg-[#1a56ff]"
+                              className="h-full rounded-full bg-ink"
                               style={{ width: `${skill.candidateScore}%` }}
                             />
                           </div>
@@ -191,25 +191,25 @@ export function TrackPageView({
 
         {/* Real-world capability model */}
         {realWorldTasks.length > 0 && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
-              <Briefcase size={15} className="text-[#1a56ff]" aria-hidden />
+          <section className="rounded-lg border border-line bg-paper p-6">
+            <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
+              <Briefcase size={15} className="text-ink" aria-hidden />
               Real-world tasks this track measures
             </h2>
-            <p className="mb-5 text-xs text-slate-500">
+            <p className="mb-5 text-xs text-muted">
               Practical, evidence-based tasks — the kind of work that produces a real skill score.
             </p>
             <ul className="grid gap-3 sm:grid-cols-2">
               {realWorldTasks.slice(0, 8).map((task) => (
                 <li
                   key={`${task.skillSlug}-${task.dimension}`}
-                  className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4"
+                  className="rounded-lg border border-line bg-paper-2/50 p-4"
                 >
-                  <p className="text-sm font-semibold text-slate-900">{task.title}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-500">{task.description}</p>
+                  <p className="text-sm font-semibold text-ink">{task.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted">{task.description}</p>
                   <Link
                     href={`/skills/${task.skillSlug}`}
-                    className="mt-2 inline-block text-xs font-semibold text-[#1a56ff] hover:underline"
+                    className="mt-2 inline-block text-xs font-semibold text-ink hover:underline"
                   >
                     {task.skillName} →
                   </Link>
@@ -221,9 +221,9 @@ export function TrackPageView({
 
         {/* Roles in this track */}
         {track.roles.length > 0 && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
-              <Briefcase size={15} className="text-[#1a56ff]" aria-hidden />
+          <section className="rounded-lg border border-line bg-paper p-6">
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
+              <Briefcase size={15} className="text-ink" aria-hidden />
               Roles in this track
             </h2>
             <ul className="flex flex-wrap gap-2">
@@ -231,7 +231,7 @@ export function TrackPageView({
                 <li key={role.slug}>
                   <Link
                     href={`/careers/${role.slug}`}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-[#1a56ff]/40 hover:text-[#1a56ff]"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-line bg-paper px-3 py-2 text-sm font-semibold text-graphite transition-colors hover:border-ink/40 hover:text-ink"
                   >
                     {role.name}
                     <ArrowRight size={13} aria-hidden />
@@ -242,7 +242,7 @@ export function TrackPageView({
           </section>
         )}
 
-        <p className="text-xs leading-relaxed text-slate-500">
+        <p className="text-xs leading-relaxed text-muted">
           Scores and levels are evidence-derived. A course, certificate or self-reported claim never
           produces a verified level without assessed or verified evidence.
         </p>

@@ -58,14 +58,14 @@ export default async function EmployersPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="grid items-center gap-14 lg:grid-cols-2">
             <div>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#1a56ff]/20 px-3 py-1.5 text-xs font-semibold text-blue-300">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#0B0B0C]/20 px-3 py-1.5 text-xs font-semibold text-blue-300">
                 <Shield size={12} aria-hidden />
                 For employers
               </div>
               <h1 className="mb-5 text-4xl font-bold leading-tight text-white sm:text-5xl">
                 Hire on evidence.
                 <br />
-                <span className="text-[#1a56ff]">Not on claims.</span>
+                <span className="text-[#0B0B0C]">Not on claims.</span>
               </h1>
               <p className="mb-8 text-lg leading-relaxed text-slate-400">
                 Candidates on Human Bridge prove skills through work simulations and a defense
@@ -99,7 +99,7 @@ export default async function EmployersPage() {
                   key={item}
                   className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300"
                 >
-                  <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[#1a56ff]" aria-hidden />
+                  <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[#0B0B0C]" aria-hidden />
                   {item}
                 </li>
               ))}
@@ -130,7 +130,7 @@ export default async function EmployersPage() {
                 className="rounded-2xl border border-slate-100 p-5 transition-all hover:border-slate-200 hover:shadow-lg hover:shadow-slate-100"
               >
                 <div className="mb-4 flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef3ff] text-[#1a56ff]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F2F2ED] text-[#0B0B0C]">
                     <item.icon size={20} aria-hidden />
                   </div>
                   <span className="text-3xl font-black text-slate-100" aria-hidden>
@@ -146,7 +146,7 @@ export default async function EmployersPage() {
       </section>
 
       {/* Matching transparency */}
-      <section className="bg-[#f8fafc] py-20">
+      <section className="bg-[#F7F7F3] py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <h2 className="mb-3 text-2xl font-bold text-slate-900">
             The matching rules, in plain terms
@@ -163,7 +163,7 @@ export default async function EmployersPage() {
               "The final score is the weighted average, capped at 100. Strengths and gaps are listed explicitly.",
             ].map((rule, i) => (
               <li key={i} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4">
-                <span className="shrink-0 font-bold text-[#1a56ff]">{i + 1}</span>
+                <span className="shrink-0 font-bold text-[#0B0B0C]">{i + 1}</span>
                 {rule}
               </li>
             ))}

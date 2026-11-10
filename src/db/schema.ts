@@ -121,6 +121,55 @@ export const blueprintStatusEnum = pgEnum("blueprint_status", [
   "archived",
 ]);
 
+export const roadmapStatusEnum = pgEnum("roadmap_status", ["active", "archived", "completed"]);
+export const milestoneStatusEnum = pgEnum("milestone_status", [
+  "not_started",
+  "in_progress",
+  "completed",
+  "skipped",
+]);
+export const taskPriorityEnum = pgEnum("task_priority", ["low", "medium", "high"]);
+export const taskStatusEnum = pgEnum("task_status", ["todo", "in_progress", "done"]);
+export const plannerGoalCategoryEnum = pgEnum("planner_goal_category", [
+  "career",
+  "learning",
+  "personal",
+  "finance",
+  "health",
+  "other",
+]);
+export const plannerGoalStatusEnum = pgEnum("planner_goal_status", [
+  "active",
+  "completed",
+  "archived",
+]);
+export const userProjectStatusEnum = pgEnum("user_project_status", [
+  "planned",
+  "in_progress",
+  "completed",
+]);
+export const skillLearningStatusEnum = pgEnum("skill_learning_status", [
+  "exploring",
+  "learning",
+  "practising",
+  "comfortable",
+]);
+
+export interface RoadmapResource {
+  title: string;
+  provider?: string;
+  url?: string;
+  type?: string;
+  note?: string;
+  isDemo?: boolean;
+}
+
+export interface ProfessionalLink {
+  label: string;
+  url: string;
+}
+
+
 // ─── Skills taxonomy enums ──────────────────────────────────────────────────
 export const trackStatusEnum = pgEnum("track_status", ["active", "inactive", "archived"]);
 
@@ -386,6 +435,12 @@ export const users = pgTable("users", {
   experienceSummary: text("experience_summary"),
   experienceYears: integer("experience_years").default(0),
   targetCareerId: integer("target_career_id").references(() => careers.id),
+  /** Professional identity used across the dashboard and public portfolio. */
+  headline: varchar("headline", { length: 200 }),
+  about: text("about"),
+  links: jsonb("links").$type<ProfessionalLink[]>().default([]).notNull(),
+  weeklyHours: integer("weekly_hours").default(5).notNull(),
+  currentLevel: varchar("current_level", { length: 30 }).default("beginner").notNull(),
   location: varchar("location", { length: 200 }),
   workPreference: workTypeEnum("work_preference"),
   onboardingComplete: boolean("onboarding_complete").default(false).notNull(),
@@ -873,9 +928,16 @@ export const userProjects = pgTable("user_projects", {
   description: text("description"),
   skillSlugs: jsonb("skill_slugs"),
   projectUrl: varchar("project_url", { length: 500 }),
+  repositoryUrl: varchar("repository_url", { length: 500 }),
+  reflection: text("reflection"),
+  status: userProjectStatusEnum("status").default("planned").notNull(),
+  /** Only an employer/admin review can set this. A checkbox never can. */
   verified: boolean("verified").default(false).notNull(),
+  isPublic: boolean("is_public").default(true).notNull(),
+  startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // ─── Learning ──────────────────────────────────────────────────────────────
@@ -966,4 +1028,154 @@ export const domainEvents = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [index("domain_events_type_idx").on(t.type)],
+);
+
+// ─── Career OS: roadmaps, planner, portfolio ───────────────────────────────
+/**
+ * The career operating system connects a chosen career to a roadmap, the
+ * roadmap to milestones, milestones to planner tasks, and completed work back
+ * to the portfolio. Every table below is user-owned and cascades on deletion.
+ */
+export const careerRoadmaps = pgTable(
+  "career_roadmaps",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    careerId: integer("career_id")
+      .references(() => careers.id, { onDelete: "cascade" })
+      .notNull(),
+    title: varchar("title", { length: 200 }).notNull(),
+    summary: text("summary"),
+    startingLevel: varchar("starting_level", { length: 30 }).default("beginner").notNull(),
+    hoursPerWeek: integer("hours_per_week").default(5).notNull(),
+    estimatedWeeks: integer("estimated_weeks"),
+    status: roadmapStatusEnum("status").default("active").notNull(),
+    generatedBy: varchar("generated_by", { length: 20 }).default("template").notNull(),
+    aiNote: text("ai_note"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("career_roadmaps_user_career_unique").on(t.userId, t.careerId),
+    index("career_roadmaps_user_idx").on(t.userId),
+  ],
+);
+
+export const roadmapStages = pgTable(
+  "roadmap_stages",
+  {
+    id: serial("id").primaryKey(),
+    roadmapId: integer("roadmap_id")
+      .references(() => careerRoadmaps.id, { onDelete: "cascade" })
+      .notNull(),
+    title: varchar("title", { length: 200 }).notNull(),
+    description: text("description"),
+    ordering: integer("ordering").default(0).notNull(),
+    estimatedWeeks: integer("estimated_weeks"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("roadmap_stages_roadmap_idx").on(t.roadmapId)],
+);
+
+export const roadmapMilestones = pgTable(
+  "roadmap_milestones",
+  {
+    id: serial("id").primaryKey(),
+    roadmapId: integer("roadmap_id")
+      .references(() => careerRoadmaps.id, { onDelete: "cascade" })
+      .notNull(),
+    stageId: integer("stage_id")
+      .references(() => roadmapStages.id, { onDelete: "cascade" })
+      .notNull(),
+    title: varchar("title", { length: 240 }).notNull(),
+    objective: text("objective").notNull(),
+    whyItMatters: text("why_it_matters"),
+    skillSlugs: jsonb("skill_slugs").$type<string[]>().default([]).notNull(),
+    resources: jsonb("resources").$type<RoadmapResource[]>().default([]).notNull(),
+    exercises: jsonb("exercises").$type<string[]>().default([]).notNull(),
+    projectSlugs: jsonb("project_slugs").$type<string[]>().default([]).notNull(),
+    /** Estimated effort in hours. Always labelled as an estimate in the UI. */
+    estimatedHours: integer("estimated_hours").default(10).notNull(),
+    completionCriteria: jsonb("completion_criteria").$type<string[]>().default([]).notNull(),
+    dependsOn: jsonb("depends_on").$type<string[]>().default([]).notNull(),
+    status: milestoneStatusEnum("status").default("not_started").notNull(),
+    ordering: integer("ordering").default(0).notNull(),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("roadmap_milestones_roadmap_idx").on(t.roadmapId),
+    index("roadmap_milestones_stage_idx").on(t.stageId),
+  ],
+);
+
+export const plannerGoals = pgTable(
+  "planner_goals",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    title: varchar("title", { length: 200 }).notNull(),
+    description: text("description"),
+    category: plannerGoalCategoryEnum("category").default("personal").notNull(),
+    targetDate: timestamp("target_date"),
+    status: plannerGoalStatusEnum("status").default("active").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [index("planner_goals_user_idx").on(t.userId)],
+);
+
+export const plannerTasks = pgTable(
+  "planner_tasks",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    goalId: integer("goal_id").references(() => plannerGoals.id, { onDelete: "set null" }),
+    milestoneId: integer("milestone_id").references(() => roadmapMilestones.id, {
+      onDelete: "set null",
+    }),
+    title: varchar("title", { length: 240 }).notNull(),
+    notes: text("notes"),
+    priority: taskPriorityEnum("priority").default("medium").notNull(),
+    status: taskStatusEnum("status").default("todo").notNull(),
+    scheduledFor: timestamp("scheduled_for"),
+    dueDate: timestamp("due_date"),
+    estimatedMinutes: integer("estimated_minutes").default(30).notNull(),
+    recurrence: varchar("recurrence", { length: 20 }).default("none").notNull(),
+    completedAt: timestamp("completed_at"),
+    ordering: integer("ordering").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("planner_tasks_user_idx").on(t.userId),
+    index("planner_tasks_schedule_idx").on(t.userId, t.scheduledFor),
+    index("planner_tasks_milestone_idx").on(t.milestoneId),
+  ],
+);
+
+/** A user-managed learning state. Deliberately separate from verified scores. */
+export const userSkillLearning = pgTable(
+  "user_skill_learning",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    skillId: integer("skill_id")
+      .references(() => skills.id, { onDelete: "cascade" })
+      .notNull(),
+    status: skillLearningStatusEnum("status").default("exploring").notNull(),
+    note: text("note"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("user_skill_learning_unique").on(t.userId, t.skillId)],
 );

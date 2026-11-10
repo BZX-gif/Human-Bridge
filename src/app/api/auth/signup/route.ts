@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         role: body.role,
         companyId,
         avatarInitials: initials(body.name),
-        avatarColor: "bg-[#1a56ff]",
+        avatarColor: "bg-[#0B0B0C]",
       })
       .returning();
 

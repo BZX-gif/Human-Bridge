@@ -37,6 +37,7 @@ export interface PassportView {
   targetRole: string | null;
   readiness: number;
   isPublic: boolean;
+  employerVisible: boolean;
   visibility: Record<string, boolean>;
   skills: PassportSkillView[];
   assessments: {
@@ -114,6 +115,7 @@ async function buildPassport(
     evidence: true,
     assessments: true,
     projects: true,
+    journey: true,
     contact: false,
   };
 
@@ -190,6 +192,7 @@ async function buildPassport(
     targetRole,
     readiness: passport.readiness,
     isPublic: passport.isPublic,
+    employerVisible: passport.employerVisible,
     visibility,
     skills: skillViews,
     assessments: attemptRows

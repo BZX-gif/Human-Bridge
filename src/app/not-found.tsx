@@ -3,10 +3,10 @@ import { ArrowLeft, Search } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <main className="pt-16 min-h-screen bg-[#f8fafc] flex items-center justify-center">
+    <main className="pt-16 min-h-screen bg-[#F7F7F3] flex items-center justify-center">
       <div className="max-w-lg mx-auto px-4 text-center">
-        <div className="w-16 h-16 bg-[#e8edff] rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <Search size={28} className="text-[#1a56ff]" />
+        <div className="w-16 h-16 bg-[#EFEFE9] rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <Search size={28} className="text-[#0B0B0C]" />
         </div>
         <h1 className="text-4xl font-bold text-slate-900 mb-3">Page not found</h1>
         <p className="text-slate-500 text-lg mb-8">
@@ -15,7 +15,7 @@ export default function NotFound() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 bg-[#1a56ff] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#1040cc] transition-colors text-sm"
+            className="inline-flex items-center justify-center gap-2 bg-[#0B0B0C] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#2B2B30] transition-colors text-sm"
           >
             <ArrowLeft size={15} />
             Back to Home

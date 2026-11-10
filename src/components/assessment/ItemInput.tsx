@@ -33,17 +33,17 @@ export function ItemInput({ item, value, onChange, onPaste }: ItemInputProps) {
               <label
                 key={index}
                 className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 text-sm transition-colors",
+                  "flex cursor-pointer items-start gap-3 rounded-md border p-3.5 text-sm transition-colors",
                   selected
-                    ? "border-[#1a56ff] bg-[#eef3ff] text-[#1a3fb8]"
-                    : "border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50",
-                  "focus-within:ring-2 focus-within:ring-[#1a56ff] focus-within:ring-offset-2",
+                    ? "border-ink bg-paper-2 text-[#1a3fb8]"
+                    : "border-line text-graphite hover:border-line-strong hover:bg-paper-2",
+                  "focus-within:ring-2 focus-within:ring-[#0B0B0C] focus-within:ring-offset-2",
                 )}
               >
                 <input
                   type="radio"
                   name={`${id}-${item.key}`}
-                  className="mt-0.5 h-4 w-4 accent-[#1a56ff]"
+                  className="mt-0.5 h-4 w-4 accent-[#0B0B0C]"
                   checked={selected}
                   onChange={() => onChange({ kind: "choice", index })}
                 />
@@ -58,23 +58,23 @@ export function ItemInput({ item, value, onChange, onPaste }: ItemInputProps) {
       const chosen = value?.kind === "choices" ? value.indexes : [];
       return (
         <fieldset className="space-y-2">
-          <legend className="mb-1 text-xs font-medium text-slate-500">Select all that apply</legend>
+          <legend className="mb-1 text-xs font-medium text-muted">Select all that apply</legend>
           {options.map((option, index) => {
             const selected = chosen.includes(index);
             return (
               <label
                 key={index}
                 className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 text-sm transition-colors",
+                  "flex cursor-pointer items-start gap-3 rounded-md border p-3.5 text-sm transition-colors",
                   selected
-                    ? "border-[#1a56ff] bg-[#eef3ff] text-[#1a3fb8]"
-                    : "border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50",
-                  "focus-within:ring-2 focus-within:ring-[#1a56ff] focus-within:ring-offset-2",
+                    ? "border-ink bg-paper-2 text-[#1a3fb8]"
+                    : "border-line text-graphite hover:border-line-strong hover:bg-paper-2",
+                  "focus-within:ring-2 focus-within:ring-[#0B0B0C] focus-within:ring-offset-2",
                 )}
               >
                 <input
                   type="checkbox"
-                  className="mt-0.5 h-4 w-4 accent-[#1a56ff]"
+                  className="mt-0.5 h-4 w-4 accent-[#0B0B0C]"
                   checked={selected}
                   onChange={() =>
                     onChange({
@@ -100,7 +100,7 @@ export function ItemInput({ item, value, onChange, onPaste }: ItemInputProps) {
             id={`${id}-${item.key}`}
             type="number"
             inputMode="decimal"
-            className="w-48 rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 focus:border-[#1a56ff] focus:outline-none focus:ring-2 focus:ring-[#1a56ff]/20"
+            className="w-48 rounded-md border border-line px-3.5 py-2.5 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-[#0B0B0C]/20"
             value={value?.kind === "number" ? value.value : ""}
             onChange={(e) => {
               const parsed = Number(e.target.value);
@@ -110,7 +110,7 @@ export function ItemInput({ item, value, onChange, onPaste }: ItemInputProps) {
             aria-label={item.prompt}
           />
           {item.payload.unit && (
-            <span className="text-sm text-slate-500">{item.payload.unit}</span>
+            <span className="text-sm text-muted">{item.payload.unit}</span>
           )}
         </div>
       );
@@ -121,7 +121,7 @@ export function ItemInput({ item, value, onChange, onPaste }: ItemInputProps) {
           id={`${id}-${item.key}`}
           rows={item.payload.rows ?? 10}
           spellCheck={false}
-          className="w-full rounded-xl border border-slate-200 bg-slate-900 px-3.5 py-3 font-mono text-[13px] leading-relaxed text-slate-100 placeholder:text-slate-500 focus:border-[#1a56ff] focus:outline-none focus:ring-2 focus:ring-[#1a56ff]/30"
+          className="w-full rounded-md border border-line bg-ink px-3.5 py-3 font-mono text-[13px] leading-relaxed text-paper placeholder:text-muted focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/20"
           placeholder={item.payload.placeholder ?? "SELECT ..."}
           value={value?.kind === "text" ? value.text : ""}
           onChange={(e) => onChange({ kind: "text", text: e.target.value })}
@@ -144,7 +144,7 @@ export function ItemInput({ item, value, onChange, onPaste }: ItemInputProps) {
           <textarea
             id={`${id}-${item.key}`}
             rows={item.payload.rows ?? 5}
-            className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-[#1a56ff] focus:outline-none focus:ring-2 focus:ring-[#1a56ff]/20"
+            className="w-full rounded-md border border-line px-3.5 py-3 text-sm leading-relaxed text-ink placeholder:text-faint focus:border-ink focus:outline-none focus:ring-2 focus:ring-[#0B0B0C]/20"
             placeholder={item.payload.placeholder ?? "Write your answer..."}
             value={text}
             onChange={(e) => onChange({ kind: "text", text: e.target.value })}
@@ -155,7 +155,7 @@ export function ItemInput({ item, value, onChange, onPaste }: ItemInputProps) {
             <p
               className={cn(
                 "mt-1.5 text-xs",
-                words >= minWords ? "text-slate-400" : "text-amber-600",
+                words >= minWords ? "text-faint" : "text-ochre",
               )}
             >
               {words} words · {minWords} suggested for a complete answer
@@ -186,7 +186,7 @@ function FileField({ item, value, onChange }: Omit<ItemInputProps, "onPaste">) {
       <input
         type="file"
         accept={accept.join(",")}
-        className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200"
+        className="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-paper-3 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-graphite hover:file:bg-paper-4"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (!file) return;
@@ -212,8 +212,8 @@ function FileField({ item, value, onChange }: Omit<ItemInputProps, "onPaste">) {
         aria-label={item.prompt}
       />
       {current && (
-        <p className="mt-2 text-xs text-slate-500">
-          Attached: <span className="font-medium text-slate-700">{current.fileName}</span> (
+        <p className="mt-2 text-xs text-muted">
+          Attached: <span className="font-medium text-graphite">{current.fileName}</span> (
           {(current.size / 1024).toFixed(0)} KB). File metadata is recorded as evidence.
         </p>
       )}

@@ -2,17 +2,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Target } from "lucide-react";
+import { ArrowRight, Check, Loader2, Target } from "lucide-react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { Button } from "@/components/ui/Button";
 
-/** Set this career as the candidate's target so gaps and matching are scoped to it. */
+/**
+ * Set the candidate's career goal and build their roadmap. The API creates the
+ * plan in the same request, so the next screen is never an empty shell.
+ */
 export function SelectCareerButton({
   careerId,
   careerName,
+  fullWidth = false,
 }: {
   careerId: number;
   careerName: string;
+  fullWidth?: boolean;
 }) {
   const router = useRouter();
   const [state, setState] = useState<"idle" | "saving" | "done">("idle");
@@ -27,25 +32,38 @@ export function SelectCareerButton({
         json: { careerId },
       });
       setState("done");
+      router.push("/journey");
       router.refresh();
     } catch (e) {
-      setError(e instanceof ApiClientError ? e.message : "Could not set your target role.");
+      setError(e instanceof ApiClientError ? e.message : "Could not set your career goal.");
       setState("idle");
     }
   };
 
   return (
-    <div>
-      <Button variant="secondary" onClick={() => void select()} disabled={state !== "idle"}>
-        {state === "done" ? <Check size={15} aria-hidden /> : <Target size={15} aria-hidden />}
+    <div className={fullWidth ? "w-full" : undefined}>
+      <Button
+        onClick={() => void select()}
+        disabled={state !== "idle"}
+        size="md"
+        className={fullWidth ? "w-full" : undefined}
+      >
+        {state === "done" ? (
+          <Check size={15} aria-hidden />
+        ) : state === "saving" ? (
+          <Loader2 size={15} className="animate-spin" aria-hidden />
+        ) : (
+          <Target size={15} aria-hidden />
+        )}
         {state === "done"
-          ? `${careerName} is your target`
+          ? "Journey created"
           : state === "saving"
-            ? "Saving..."
-            : "Set as my target role"}
+            ? "Building your roadmap…"
+            : `Start my ${careerName} journey`}
+        {state === "idle" && <ArrowRight size={15} aria-hidden />}
       </Button>
       {error && (
-        <p role="alert" className="mt-1.5 text-xs text-red-600">
+        <p role="alert" className="mt-2 text-[11.5px] leading-relaxed text-rust">
           {error}
         </p>
       )}

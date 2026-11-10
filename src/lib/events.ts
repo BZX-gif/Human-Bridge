@@ -13,7 +13,17 @@ export type DomainEventType =
   | "job.created"
   | "job.applied"
   | "candidate.shortlisted"
-  | "candidate.hired";
+  | "candidate.hired"
+  | "roadmap.created"
+  | "milestone.updated"
+  | "milestone.completed"
+  | "task.completed"
+  | "task.created"
+  | "project.created"
+  | "project.completed"
+  | "profile.updated"
+  | "goal.created"
+  | "goal.completed";
 
 export interface DomainEventInput {
   type: DomainEventType;

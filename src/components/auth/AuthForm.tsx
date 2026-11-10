@@ -20,15 +20,15 @@ interface AuthUser {
 
 function fieldClass(invalid?: boolean) {
   return cn(
-    "w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400",
-    "focus:outline-none focus:ring-2 focus:ring-[#1a56ff] focus:border-transparent",
-    invalid ? "border-red-300" : "border-slate-200",
+    "h-11 w-full rounded-md border bg-paper px-3.5 text-[13px] text-ink placeholder:text-faint",
+    "focus:outline-none focus:ring-2 focus:ring-ink/15 focus:border-ink",
+    invalid ? "border-rust/50" : "border-line",
   );
 }
 
 function Label({ htmlFor, children }: { htmlFor: string; children: string }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-slate-700">
+    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-graphite">
       {children}
     </label>
   );
@@ -37,7 +37,7 @@ function Label({ htmlFor, children }: { htmlFor: string; children: string }) {
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} className="mt-1 text-xs text-red-600" role="alert">
+    <p id={id} className="mt-1 text-xs text-rust" role="alert">
       {message}
     </p>
   );
@@ -88,7 +88,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
       {formError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">
+        <div className="rounded-md border border-rust/20 bg-rust-soft px-3 py-2.5 text-sm text-rust" role="alert">
           {formError}
         </div>
       )}
@@ -127,7 +127,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:text-slate-700"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-faint hover:text-graphite"
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
@@ -142,9 +142,9 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
         {loading ? "Signing in…" : "Sign in"}
       </Button>
 
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center text-sm text-muted">
         New to Human Bridge?{" "}
-        <Link href="/signup" className="font-semibold text-[#1a56ff] hover:underline">
+        <Link href="/signup" className="font-semibold text-ink hover:underline">
           Create an account
         </Link>
       </p>
@@ -213,7 +213,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
       {formError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">
+        <div className="rounded-md border border-rust/20 bg-rust-soft px-3 py-2.5 text-sm text-rust" role="alert">
           {formError}
         </div>
       )}
@@ -253,7 +253,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
       </div>
 
       <fieldset>
-        <legend className="mb-1.5 block text-sm font-medium text-slate-700">Account type</legend>
+        <legend className="mb-1.5 block text-sm font-medium text-graphite">Account type</legend>
         <div className="grid grid-cols-2 gap-2">
           {(
             [
@@ -266,10 +266,10 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
               type="button"
               onClick={() => setRole(opt.id)}
               className={cn(
-                "rounded-xl border px-3 py-2.5 text-left transition-colors",
+                "rounded-md border px-3 py-2.5 text-left transition-colors",
                 role === opt.id
-                  ? "border-[#1a56ff] bg-[#e8edff] text-[#1a56ff]"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                  ? "border-ink bg-paper-2 text-ink"
+                  : "border-line bg-paper text-graphite hover:bg-paper-2",
               )}
               aria-pressed={role === opt.id}
               disabled={loading}
@@ -317,7 +317,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:text-slate-700"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-faint hover:text-graphite"
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
@@ -349,9 +349,9 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
         {loading ? "Creating account…" : "Create account"}
       </Button>
 
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center text-sm text-muted">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-[#1a56ff] hover:underline">
+        <Link href="/login" className="font-semibold text-ink hover:underline">
           Sign in
         </Link>
       </p>

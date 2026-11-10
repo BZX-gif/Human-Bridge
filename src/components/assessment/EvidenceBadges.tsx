@@ -7,22 +7,22 @@ const VERIFICATION_CONFIG: Record<
 > = {
   self_reported: {
     label: "Self-reported",
-    className: "bg-slate-50 text-slate-600 border-slate-200",
+    className: "bg-paper-2 text-muted border-line",
     icon: ShieldQuestion,
   },
   assessed: {
     label: "Assessed",
-    className: "bg-blue-50 text-blue-700 border-blue-200",
+    className: "bg-paper-3 text-graphite border-line",
     icon: ShieldCheck,
   },
   project_verified: {
     label: "Project verified",
-    className: "bg-green-50 text-green-700 border-green-200",
+    className: "bg-moss-soft text-moss border-moss/20",
     icon: BadgeCheck,
   },
   employer_verified: {
     label: "Employer verified",
-    className: "bg-violet-50 text-violet-700 border-violet-200",
+    className: "bg-paper-3 text-graphite border-violet-200",
     icon: BadgeCheck,
   },
 };
@@ -51,9 +51,9 @@ export function VerificationBadge({
 }
 
 const CONFIDENCE_CONFIG: Record<string, string> = {
-  high: "bg-green-50 text-green-700 border-green-200",
-  medium: "bg-amber-50 text-amber-700 border-amber-200",
-  low: "bg-slate-50 text-slate-500 border-slate-200",
+  high: "bg-moss-soft text-moss border-moss/20",
+  medium: "bg-ochre-soft text-ochre border-ochre/20",
+  low: "bg-paper-2 text-muted border-line",
 };
 
 export function ConfidenceBadge({ confidence }: { confidence: string }) {
@@ -71,11 +71,11 @@ export function ConfidenceBadge({ confidence }: { confidence: string }) {
 }
 
 const LEVEL_CONFIG: Record<string, string> = {
-  Expert: "bg-violet-50 text-violet-700 border-violet-200",
-  Advanced: "bg-blue-50 text-blue-700 border-blue-200",
-  Intermediate: "bg-amber-50 text-amber-700 border-amber-200",
-  Beginner: "bg-slate-50 text-slate-600 border-slate-200",
-  "Not Evaluated": "bg-slate-50 text-slate-400 border-slate-200",
+  Expert: "bg-paper-3 text-graphite border-violet-200",
+  Advanced: "bg-paper-3 text-graphite border-line",
+  Intermediate: "bg-ochre-soft text-ochre border-ochre/20",
+  Beginner: "bg-paper-2 text-muted border-line",
+  "Not Evaluated": "bg-paper-2 text-faint border-line",
 };
 
 export function LevelBadge({ level }: { level: string }) {
@@ -95,8 +95,8 @@ export function IntegrityBadge({ status }: { status: string }) {
   if (status === "normal") return null;
   const config =
     status === "flagged"
-      ? { label: "Held for integrity review", className: "bg-red-50 text-red-700 border-red-200" }
-      : { label: "Flagged for review", className: "bg-amber-50 text-amber-700 border-amber-200" };
+      ? { label: "Held for integrity review", className: "bg-rust-soft text-rust border-rust/20" }
+      : { label: "Flagged for review", className: "bg-ochre-soft text-ochre border-ochre/20" };
   return (
     <span
       className={cn(

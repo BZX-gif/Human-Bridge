@@ -48,6 +48,7 @@ export const passportPrivacySchema = z.object({
       evidence: z.boolean().optional(),
       assessments: z.boolean().optional(),
       projects: z.boolean().optional(),
+      journey: z.boolean().optional(),
       contact: z.boolean().optional(),
     })
     .optional(),

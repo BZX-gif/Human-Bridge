@@ -1,100 +1,120 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import { Logo } from "./Logo";
+
+const columns = [
+  {
+    title: "Product",
+    links: [
+      { label: "Career explorer", href: "/careers" },
+      { label: "Career roadmap", href: "/journey" },
+      { label: "Planner", href: "/planner" },
+      { label: "Skills", href: "/skills" },
+      { label: "Projects", href: "/projects" },
+    ],
+  },
+  {
+    title: "Build evidence",
+    links: [
+      { label: "Assessments", href: "/assessments" },
+      { label: "Skill passport", href: "/passport" },
+      { label: "Portfolio", href: "/portfolio" },
+      { label: "Opportunities", href: "/jobs" },
+      { label: "Career mentor", href: "/mentor" },
+    ],
+  },
+  {
+    title: "For employers",
+    links: [
+      { label: "Hire for skills", href: "/employers" },
+      { label: "Employer workspace", href: "/employers/dashboard" },
+      { label: "Post a role", href: "/employers#post" },
+      { label: "How matching works", href: "/employers#talent" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "Our principles", href: "/#trust" },
+      { label: "How it works", href: "/#how-it-works" },
+      { label: "Get started", href: "/signup" },
+      { label: "Sign in", href: "/login" },
+    ],
+  },
+];
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-900 text-slate-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
-          {/* Brand */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 bg-[#1a56ff] rounded-lg flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <path d="M3 14C3 14 3 10 6.5 9C10 8 14 9 14 4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                  <circle cx="3" cy="14" r="1.5" fill="white"/>
-                  <circle cx="14" cy="4" r="1.5" fill="white"/>
-                </svg>
-              </div>
-              <span className="text-[15px] font-bold text-white">
-                Human<span className="text-[#1a56ff]">Bridge</span>
-              </span>
-            </div>
-            <p className="text-sm text-slate-400 leading-relaxed max-w-xs">
-              The career-to-employment infrastructure platform. Find the skills. Build the skills. Prove the skills. Get hired.
+    <footer className="bg-ink text-paper">
+      <div className="hb-container">
+        <div className="grid gap-12 border-b border-white/10 py-16 lg:grid-cols-[1.1fr_1.4fr] lg:py-20">
+          <div>
+            <Logo inverted />
+            <p className="mt-8 max-w-md font-display text-[clamp(1.8rem,3.2vw,2.6rem)] leading-[1.06] tracking-[-0.015em] text-paper">
+              The bridge between what you want to become and what you actually do.
             </p>
-            <div className="mt-5">
-              <Link href="/onboarding" className="inline-flex items-center gap-2 text-sm font-semibold text-white bg-[#1a56ff] px-4 py-2 rounded-lg hover:bg-[#1040cc] transition-colors">
-                Start your journey
-                <ArrowRight size={14} />
-              </Link>
-            </div>
+            <p className="mt-5 max-w-sm text-[13px] leading-relaxed text-white/55">
+              Discover a direction, understand the real requirements, build a plan, and produce
+              evidence of your work. No shortcuts and no guarantees — just a clearer path.
+            </p>
+            <Link
+              href="/signup"
+              className="mt-8 inline-flex h-10 items-center gap-2 rounded-md bg-paper px-4 text-[13px] font-medium text-ink transition-colors hover:bg-paper-3"
+            >
+              Start building
+              <ArrowUpRight size={14} aria-hidden />
+            </Link>
           </div>
 
-          {/* Platform */}
-          <div>
-            <h4 className="text-sm font-semibold text-white mb-4">Platform</h4>
-            <ul className="space-y-2.5">
-              {[
-                { label: "Explore Careers", href: "/careers" },
-                { label: "Browse Jobs", href: "/jobs" },
-                { label: "Skills Library", href: "/skills" },
-                { label: "Learning", href: "/skills#learning" },
-                { label: "Assessments", href: "/assessments" },
-              ].map(item => (
-                <li key={item.href}>
-                  <Link href={item.href} className="text-sm text-slate-400 hover:text-white transition-colors">{item.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Tools */}
-          <div>
-            <h4 className="text-sm font-semibold text-white mb-4">Tools</h4>
-            <ul className="space-y-2.5">
-              {[
-                { label: "Skill Passport", href: "/passport" },
-                { label: "Skill Gap Analysis", href: "/dashboard" },
-                { label: "AI Career Copilot", href: "/ai-copilot" },
-                { label: "Dashboard", href: "/dashboard" },
-                { label: "For Employers", href: "/employers" },
-              ].map(item => (
-                <li key={item.href}>
-                  <Link href={item.href} className="text-sm text-slate-400 hover:text-white transition-colors">{item.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
-            <ul className="space-y-2.5">
-              {[
-                { label: "About Human Bridge", href: "#" },
-                { label: "Our Mission", href: "#" },
-                { label: "Blog", href: "#" },
-                { label: "Careers at HB", href: "#" },
-                { label: "Contact", href: "#" },
-              ].map(item => (
-                <li key={item.label}>
-                  <Link href={item.href} className="text-sm text-slate-400 hover:text-white transition-colors">{item.label}</Link>
-                </li>
-              ))}
-            </ul>
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+            {columns.map((column) => (
+              <div key={column.title}>
+                <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-white/40">
+                  {column.title}
+                </h3>
+                <ul className="mt-4 space-y-2.5">
+                  {column.links.map((link) => (
+                    <li key={link.href + link.label}>
+                      <Link
+                        href={link.href}
+                        className="text-[12.5px] text-white/65 transition-colors hover:text-paper"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-slate-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-slate-500">
-            © 2025 HumanBridge. All rights reserved. Demo data used throughout — not real employment or salary data.
-          </p>
-          <div className="flex items-center gap-4">
-            <Link href="#" className="text-xs text-slate-500 hover:text-slate-400 transition-colors">Privacy Policy</Link>
-            <Link href="#" className="text-xs text-slate-500 hover:text-slate-400 transition-colors">Terms of Service</Link>
-            <Link href="#" className="text-xs text-slate-500 hover:text-slate-400 transition-colors">Cookie Policy</Link>
+        <div className="grid gap-6 py-8 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div>
+            <p className="max-w-2xl text-[11.5px] leading-relaxed text-white/40">
+              Human Bridge is in active development. Career descriptions, demand signals and salary
+              ranges are indicative context for orientation only. They are not offers, predictions
+              or guarantees of employment. Skills marked verified are backed by assessment or
+              employer evidence; self-reported claims are labelled as such.
+            </p>
+            <p className="mt-3 text-[11.5px] text-white/30">
+              © {new Date().getFullYear()} Human Bridge. Built for people who intend to follow
+              through.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11.5px] text-white/40">
+            <Link href="/#trust" className="hover:text-paper">
+              Principles
+            </Link>
+            <Link href="/#trust" className="hover:text-paper">
+              Privacy
+            </Link>
+            <Link href="/#trust" className="hover:text-paper">
+              Terms
+            </Link>
+            <span className="font-display text-lg lowercase tracking-normal text-white/30">
+              HYB
+            </span>
           </div>
         </div>
       </div>
