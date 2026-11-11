@@ -18,17 +18,17 @@ interface AuthUser {
   role: Role | "admin";
 }
 
-function fieldClass(invalid?: boolean) {
-  return cn(
-    "h-11 w-full rounded-md border bg-paper px-3.5 text-[13px] text-ink placeholder:text-faint",
-    "focus:outline-none focus:ring-2 focus:ring-ink/15 focus:border-ink",
-    invalid ? "border-rust/50" : "border-line",
-  );
-}
+/** The invalid state is styled from `aria-invalid`, which every field already sets. */
+const FIELD = "hb-input";
+
+const FORM_ERROR = "animate-rise rounded-md bg-rust-soft px-3.5 py-3 text-sm leading-snug text-rust";
+
+const TOGGLE =
+  "absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-paper-3 hover:text-ink";
 
 function Label({ htmlFor, children }: { htmlFor: string; children: string }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-graphite">
+    <label htmlFor={htmlFor} className="hb-label">
       {children}
     </label>
   );
@@ -37,7 +37,7 @@ function Label({ htmlFor, children }: { htmlFor: string; children: string }) {
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} className="mt-1 text-xs text-rust" role="alert">
+    <p id={id} className="mt-1.5 text-xs text-rust" role="alert">
       {message}
     </p>
   );
@@ -86,9 +86,9 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4" noValidate>
+    <form onSubmit={onSubmit} className="space-y-5" noValidate>
       {formError && (
-        <div className="rounded-md border border-rust/20 bg-rust-soft px-3 py-2.5 text-sm text-rust" role="alert">
+        <div className={FORM_ERROR} role="alert">
           {formError}
         </div>
       )}
@@ -102,7 +102,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={fieldClass(Boolean(errors.email))}
+          className={FIELD}
           aria-invalid={Boolean(errors.email)}
           aria-describedby={errors.email ? "email-error" : undefined}
           disabled={loading}
@@ -120,18 +120,18 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={cn(fieldClass(Boolean(errors.password)), "pr-11")}
+            className={cn(FIELD, "pr-11")}
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? "password-error" : undefined}
             disabled={loading}
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-faint hover:text-graphite"
+            className={TOGGLE}
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            {showPassword ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
           </button>
         </div>
         <FieldError id="password-error" message={errors.password} />
@@ -144,7 +144,7 @@ export function LoginForm({ nextPath }: { nextPath?: string | null }) {
 
       <p className="text-center text-sm text-muted">
         New to Human Bridge?{" "}
-        <Link href="/signup" className="font-semibold text-ink hover:underline">
+        <Link href="/signup" className="font-medium text-link hover:underline hover:underline-offset-2">
           Create an account
         </Link>
       </p>
@@ -211,9 +211,9 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4" noValidate>
+    <form onSubmit={onSubmit} className="space-y-5" noValidate>
       {formError && (
-        <div className="rounded-md border border-rust/20 bg-rust-soft px-3 py-2.5 text-sm text-rust" role="alert">
+        <div className={FORM_ERROR} role="alert">
           {formError}
         </div>
       )}
@@ -227,7 +227,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
           autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className={fieldClass(Boolean(errors.name))}
+          className={FIELD}
           aria-invalid={Boolean(errors.name)}
           aria-describedby={errors.name ? "name-error" : undefined}
           disabled={loading}
@@ -244,7 +244,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={fieldClass(Boolean(errors.email))}
+          className={FIELD}
           aria-invalid={Boolean(errors.email)}
           aria-describedby={errors.email ? "email-error" : undefined}
           disabled={loading}
@@ -253,8 +253,8 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
       </div>
 
       <fieldset>
-        <legend className="mb-1.5 block text-sm font-medium text-graphite">Account type</legend>
-        <div className="grid grid-cols-2 gap-2">
+        <legend className="hb-label">Account type</legend>
+        <div className="grid grid-cols-2 gap-2.5">
           {(
             [
               { id: "candidate" as const, label: "Candidate", hint: "Find roles & prove skills" },
@@ -266,23 +266,23 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
               type="button"
               onClick={() => setRole(opt.id)}
               className={cn(
-                "rounded-md border px-3 py-2.5 text-left transition-colors",
+                "rounded-md px-3.5 py-3 text-left transition-[background-color,box-shadow,transform] duration-200 ease-apple active:scale-[0.98]",
                 role === opt.id
-                  ? "border-ink bg-paper-2 text-ink"
-                  : "border-line bg-paper text-graphite hover:bg-paper-2",
+                  ? "bg-accent-soft text-ink ring-2 ring-inset ring-accent"
+                  : "bg-paper text-graphite ring-1 ring-inset ring-line-strong hover:bg-paper-2",
               )}
               aria-pressed={role === opt.id}
               disabled={loading}
             >
               <span className="block text-sm font-semibold">{opt.label}</span>
-              <span className="block text-[11px] opacity-80">{opt.hint}</span>
+              <span className="mt-0.5 block text-2xs text-muted">{opt.hint}</span>
             </button>
           ))}
         </div>
       </fieldset>
 
       {role === "employer" && (
-        <div>
+        <div className="animate-rise">
           <Label htmlFor="companyName">Company name</Label>
           <input
             id="companyName"
@@ -291,7 +291,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
             autoComplete="organization"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
-            className={fieldClass(Boolean(errors.companyName))}
+            className={FIELD}
             aria-invalid={Boolean(errors.companyName)}
             aria-describedby={errors.companyName ? "company-error" : undefined}
             disabled={loading}
@@ -310,18 +310,18 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={cn(fieldClass(Boolean(errors.password)), "pr-11")}
+            className={cn(FIELD, "pr-11")}
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? "password-error" : undefined}
             disabled={loading}
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-faint hover:text-graphite"
+            className={TOGGLE}
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            {showPassword ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
           </button>
         </div>
         <FieldError id="password-error" message={errors.password} />
@@ -336,7 +336,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className={fieldClass(Boolean(errors.confirm))}
+          className={FIELD}
           aria-invalid={Boolean(errors.confirm)}
           aria-describedby={errors.confirm ? "confirm-error" : undefined}
           disabled={loading}
@@ -351,7 +351,7 @@ export function SignupForm({ nextPath }: { nextPath?: string | null }) {
 
       <p className="text-center text-sm text-muted">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-ink hover:underline">
+        <Link href="/login" className="font-medium text-link hover:underline hover:underline-offset-2">
           Sign in
         </Link>
       </p>

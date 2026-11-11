@@ -48,3 +48,66 @@ export function getProficiencyLabel(proficiency: number): string {
   if (proficiency >= 25) return "Beginner";
   return "No Experience";
 }
+
+const SLUG_ACRONYMS = new Set([
+  "ai", "api", "aws", "bi", "cd", "ci", "crm", "css", "etl", "gcp", "hr", "html", "kpi", "llm", "ml",
+  "nlp", "owasp", "qa", "rag", "rest", "sem", "seo", "sql", "ui", "ux",
+]);
+
+const SLUG_WORDS: Record<string, string> = {
+  apis: "APIs",
+  devops: "DevOps",
+  github: "GitHub",
+  javascript: "JavaScript",
+  nodejs: "Node.js",
+  prds: "PRDs",
+  typescript: "TypeScript",
+};
+
+const SLUG_MINOR_WORDS = new Set(["a", "and", "as", "for", "in", "of", "or", "the", "to", "with"]);
+
+/**
+ * Turn a taxonomy slug into a readable label: "power-bi" becomes "Power BI",
+ * "statistics-for-ml" becomes "Statistics for ML".
+ *
+ * For screens that hold a slug but not the stored name. Where the name is
+ * available, show the name: a slug cannot recover punctuation ("CI/CD").
+ */
+export function formatSlug(slug: string): string {
+  return slug
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((word, index) => {
+      const lower = word.toLowerCase();
+      if (SLUG_ACRONYMS.has(lower)) return lower.toUpperCase();
+      if (SLUG_WORDS[lower]) return SLUG_WORDS[lower];
+      if (index > 0 && SLUG_MINOR_WORDS.has(lower)) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(" ");
+}
+
+/**
+ * Split content text on its one piece of markup: backtick-quoted `code` spans
+ * for table, column and file names. Returns the runs in order.
+ *
+ * A backtick with no partner is not markup; it stays in the text as written.
+ */
+export function splitInlineCode(text: string): Array<{ text: string; code: boolean }> {
+  const parts = text.split("`");
+  const runs: Array<{ text: string; code: boolean }> = [];
+  const push = (value: string, code: boolean) => {
+    if (value === "") return;
+    const last = runs[runs.length - 1];
+    if (last && !code && !last.code) last.text += value;
+    else runs.push({ text: value, code });
+  };
+
+  parts.forEach((part, index) => {
+    const insideBackticks = index % 2 === 1;
+    const closed = index < parts.length - 1;
+    if (insideBackticks && closed) push(part, true);
+    else push(insideBackticks ? "`" + part : part, false);
+  });
+  return runs;
+}

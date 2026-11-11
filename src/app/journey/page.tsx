@@ -64,7 +64,7 @@ export default async function JourneyPage() {
       {failure ? (
         <>
           <p className="eyebrow mb-3">My journey</p>
-          <h1 className="font-display text-[clamp(2rem,4vw,2.9rem)] leading-tight">
+          <h1 className="display-md">
             We could not load your journey.
           </h1>
           <div className="mt-6">
@@ -73,55 +73,49 @@ export default async function JourneyPage() {
         </>
       ) : (
         <>
-          <div className="max-w-3xl">
+          <div className="animate-rise max-w-3xl">
             <p className="eyebrow">My journey</p>
-            <h1 className="mt-3 font-display text-[clamp(2.1rem,4.5vw,3.1rem)] leading-[1.02] tracking-[-0.02em]">
-              A path needs a destination.
-            </h1>
-            <p className="lede mt-4">
+            <h1 className="display-lg mt-3">A path needs a destination.</h1>
+            <p className="lede mt-5">
               Choose the career you want to work toward. Human Bridge will build a roadmap from that
               role&apos;s real requirements — not a generic course list — and adapt it to the skills
               you can already evidence.
             </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <ButtonLink href="/careers">
-                <Compass size={15} aria-hidden />
+            <div className="mt-7 flex flex-wrap gap-2.5">
+              <ButtonLink href="/careers" size="lg">
+                <Compass size={17} aria-hidden />
                 Explore careers
               </ButtonLink>
-              <ButtonLink href="/profile" variant="secondary">
+              <ButtonLink href="/profile" variant="secondary" size="lg">
                 Set weekly availability
               </ButtonLink>
             </div>
           </div>
 
-          <div className="app-section grid gap-4 sm:grid-cols-2">
+          <div className="stagger app-section grid grid-cols-1 gap-4 sm:grid-cols-2">
             {careers.map((career) => (
               <Link
                 key={career.id}
                 href={`/careers/${career.slug}`}
-                className="group flex items-start justify-between gap-4 rounded-lg border border-line bg-paper p-5 transition-colors hover:border-line-strong"
+                className="hb-card hb-card-interactive group flex items-center justify-between gap-4 p-6"
               >
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-                    {career.trackName ?? "Career"}
-                  </p>
-                  <p className="mt-2 font-display text-[22px] leading-tight text-ink">{career.name}</p>
-                  <p className="mt-1 text-[12px] text-muted">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-muted">{career.trackName ?? "Career"}</p>
+                  <p className="mt-2 text-xl font-semibold leading-tight tracking-[-0.02em] text-ink">{career.name}</p>
+                  <p className="mt-1.5 text-sm text-muted">
                     {career.skillCount} skills · {career.essentialCount} essential
                   </p>
                 </div>
-                <ArrowRight
-                  size={16}
-                  className="mt-1 shrink-0 text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-ink"
-                  aria-hidden
-                />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper-2 text-graphite transition-[background-color,color] duration-500 ease-out-expo group-hover:bg-accent group-hover:text-white">
+                  <ArrowRight size={16} aria-hidden />
+                </span>
               </Link>
             ))}
           </div>
 
-          <div className="app-section flex items-start gap-3 rounded-lg border border-line bg-paper-2 p-5">
-            <Info size={16} className="mt-0.5 shrink-0 text-muted" aria-hidden />
-            <p className="max-w-2xl text-[12px] leading-relaxed text-muted">
+          <div className="app-section flex items-start gap-3.5 rounded-lg bg-paper-3/70 p-5">
+            <Info size={17} className="mt-0.5 shrink-0 text-muted" aria-hidden />
+            <p className="max-w-2xl text-sm leading-relaxed text-muted">
               You can change your career goal later. Rebuilding a roadmap preserves your planner
               tasks and portfolio — only the plan structure changes.
             </p>

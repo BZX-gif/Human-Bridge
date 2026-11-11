@@ -7,10 +7,10 @@ export function LoadingState({ label = "Loading…" }: { label?: string }) {
     <div
       role="status"
       aria-live="polite"
-      className="flex flex-col items-center justify-center gap-3 py-20 text-muted"
+      className="animate-fade flex flex-col items-center justify-center gap-3 py-24 text-muted"
     >
-      <Loader2 size={19} className="animate-spin" aria-hidden />
-      <p className="text-[12.5px]">{label}</p>
+      <Loader2 size={20} className="animate-spin" aria-hidden />
+      <p className="text-sm">{label}</p>
     </div>
   );
 }
@@ -27,17 +27,17 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className="flex flex-col items-start gap-3 rounded-lg border border-rust/20 bg-rust-soft/60 px-5 py-5 sm:flex-row sm:items-center sm:justify-between"
+      className="flex flex-col items-start gap-4 rounded-lg bg-rust-soft px-5 py-5 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex items-start gap-3">
-        <AlertTriangle size={17} className="mt-0.5 shrink-0 text-rust" aria-hidden />
+        <AlertTriangle size={18} className="mt-0.5 shrink-0 text-rust" aria-hidden />
         <div>
-          <p className="text-[13px] font-medium text-ink">{title}</p>
-          <p className="mt-1 max-w-lg text-[12.5px] leading-relaxed text-graphite">{message}</p>
+          <p className="text-sm font-semibold text-ink">{title}</p>
+          <p className="mt-1 max-w-lg text-sm leading-relaxed text-graphite">{message}</p>
         </div>
       </div>
       {onRetry && (
-        <Button variant="secondary" size="sm" onClick={onRetry}>
+        <Button variant="secondary" size="sm" onClick={onRetry} className="bg-paper hover:bg-paper-2">
           Try again
         </Button>
       )}
@@ -57,13 +57,13 @@ export function EmptyState({
   icon?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-line-strong bg-paper px-6 py-16 text-center">
-      <span className="flex h-10 w-10 items-center justify-center rounded-md border border-line bg-paper-2 text-faint">
-        {icon ?? <Inbox size={18} aria-hidden />}
+    <div className="hb-empty flex flex-col items-center justify-center gap-5 px-6 py-12 text-center sm:py-14">
+      <span className="hb-empty-icon flex h-12 w-12 items-center justify-center rounded-full">
+        {icon ?? <Inbox size={20} strokeWidth={1.6} aria-hidden />}
       </span>
       <div>
-        <p className="font-display text-[22px] leading-tight text-ink">{title}</p>
-        <p className="mx-auto mt-1.5 max-w-sm text-[12.5px] leading-relaxed text-muted">{message}</p>
+        <p className="text-xl font-semibold leading-tight tracking-[-0.02em] text-ink">{title}</p>
+        <p className="mx-auto mt-2 max-w-sm text-md leading-relaxed text-muted">{message}</p>
       </div>
       {action}
     </div>
@@ -76,7 +76,7 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function SkeletonCard() {
   return (
-    <div className="rounded-lg border border-line bg-paper p-5">
+    <div className="hb-card p-5">
       <Skeleton className="h-3 w-24" />
       <Skeleton className="mt-4 h-6 w-2/3" />
       <Skeleton className="mt-2 h-3 w-full" />

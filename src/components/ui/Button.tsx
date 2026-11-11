@@ -5,25 +5,30 @@ import { cn } from "@/lib/utils";
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
+/**
+ * Pill buttons. One filled accent action per view; everything else is quiet.
+ * The 1px transparent border keeps every variant the same size, so call sites
+ * that restyle a button for a dark surface (`border-paper bg-paper …`) fit.
+ */
 const variants: Record<Variant, string> = {
   primary:
-    "bg-ink text-paper border border-ink hover:bg-graphite hover:border-graphite active:translate-y-px disabled:bg-line-strong disabled:border-line-strong disabled:text-muted disabled:active:translate-y-0",
+    "border-transparent bg-accent text-white hover:bg-accent-hover active:bg-accent-press",
   secondary:
-    "bg-paper text-graphite border border-line-strong hover:border-graphite hover:text-ink active:translate-y-px disabled:text-faint disabled:hover:border-line-strong",
+    "border-transparent bg-paper-3 text-ink hover:bg-paper-4",
   ghost:
-    "bg-transparent text-graphite border border-transparent hover:bg-paper-3 hover:text-ink disabled:text-faint",
+    "border-transparent bg-transparent text-graphite hover:bg-ink/[0.06] hover:text-ink",
   danger:
-    "bg-rust text-paper border border-rust hover:bg-rust-700 active:translate-y-px disabled:bg-rust-soft disabled:text-rust",
+    "border-transparent bg-rust text-white hover:bg-rust-700",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-[12px] gap-1.5",
-  md: "h-10 px-4 text-[13px] gap-2",
-  lg: "h-12 px-6 text-[14px] gap-2",
+  sm: "h-8 gap-1.5 px-3.5 text-xs",
+  md: "h-10 gap-2 px-[18px] text-sm",
+  lg: "h-12 gap-2 px-7 text-base",
 };
 
 const base =
-  "inline-flex items-center justify-center rounded-md font-medium whitespace-nowrap transition-[background-color,border-color,color,transform,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper disabled:cursor-not-allowed";
+  "inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-full border font-medium transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-200 ease-apple active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;

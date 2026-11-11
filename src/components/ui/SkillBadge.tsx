@@ -11,9 +11,9 @@ interface SkillBadgeProps {
 }
 
 const importanceStyles: Record<SkillImportance, string> = {
-  essential: "bg-ink text-paper border-ink",
-  important: "bg-paper-2 text-graphite border-line",
-  helpful: "bg-paper text-muted border-line",
+  essential: "bg-ink text-paper border-transparent",
+  important: "bg-paper-3 text-graphite border-transparent",
+  helpful: "bg-transparent text-muted border-line-strong",
 };
 
 export function SkillBadge({
@@ -26,7 +26,7 @@ export function SkillBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-[4px] border px-2 py-1 text-[11.5px] font-medium",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-2xs font-medium",
         importanceStyles[importance],
         className,
       )}
@@ -41,7 +41,7 @@ export function SkillBadge({
         />
       )}
       {proficiency !== undefined && (
-        <span className={importance === "essential" ? "text-paper/60" : "text-faint"}>
+        <span className={importance === "essential" ? "text-paper/70" : "text-muted"}>
           {proficiency}%
         </span>
       )}

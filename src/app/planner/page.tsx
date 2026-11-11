@@ -36,10 +36,10 @@ export default async function PlannerPage() {
     return (
       <main id="main-content" className="app-page">
         <p className="eyebrow mb-3">Planner</p>
-        <h1 className="font-display text-[clamp(2rem,4vw,2.9rem)] leading-tight">
+        <h1 className="display-md">
           The planner is temporarily unavailable.
         </h1>
-        <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-muted">
+        <p className="mt-2 max-w-xl text-md leading-relaxed text-muted">
           Your saved tasks are unchanged. Please retry in a moment.
         </p>
         <div className="mt-6">

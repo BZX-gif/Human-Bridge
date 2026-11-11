@@ -20,27 +20,27 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "bg-paper-3 text-graphite border border-transparent",
-  blue: "bg-paper-3 text-ink border border-line",
-  green: "bg-moss-soft text-moss border border-moss/15",
-  yellow: "bg-ochre-soft text-ochre border border-ochre/15",
-  red: "bg-rust-soft text-rust border border-rust/15",
-  purple: "bg-paper-3 text-graphite border border-line",
-  outline: "border border-line-strong text-graphite bg-transparent",
-  ghost: "text-muted bg-transparent",
-  dark: "bg-ink text-paper border border-ink",
+  default: "bg-paper-3 text-graphite",
+  blue: "bg-accent-soft text-link",
+  green: "bg-moss-soft text-moss",
+  yellow: "bg-ochre-soft text-ochre",
+  red: "bg-rust-soft text-rust",
+  purple: "bg-paper-3 text-graphite",
+  outline: "bg-transparent text-graphite ring-1 ring-inset ring-line-strong",
+  ghost: "bg-transparent text-muted",
+  dark: "bg-ink text-paper",
 };
 
 const sizeClasses: Record<BadgeSize, string> = {
-  sm: "px-2 py-0.5 text-[10.5px] font-medium",
-  md: "px-2.5 py-1 text-[11.5px] font-medium",
+  sm: "px-2 py-0.5 text-2xs",
+  md: "px-2.5 py-[3px] text-2xs",
 };
 
 export function Badge({ children, variant = "default", size = "md", className }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-[4px] tracking-[0.01em]",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full font-medium",
         variantClasses[variant],
         sizeClasses[size],
         className,

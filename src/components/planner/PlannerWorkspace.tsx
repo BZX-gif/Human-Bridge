@@ -260,18 +260,16 @@ export function PlannerWorkspace({
 
   return (
     <div className="app-page">
-      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+      <header className="animate-rise flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <p className="eyebrow">Planner</p>
-          <h1 className="mt-3 font-display text-[clamp(2.1rem,4.5vw,3rem)] leading-[1.02] tracking-[-0.02em]">
-            What today actually requires.
-          </h1>
-          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">
+          <h1 className="display-md mt-2.5 text-ink">What today actually requires.</h1>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">
             {formatDay(new Date(), { weekday: "long", day: "numeric", month: "long" })} ·{" "}
             {weeklyHours}h/week committed. A realistic plan beats an ambitious one you abandon.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2.5">
           {data.stats.overdue > 0 && (
             <Button variant="secondary" size="md" onClick={() => void reschedule()} disabled={busy !== null}>
               {busy === "reschedule" ? (
@@ -293,8 +291,8 @@ export function PlannerWorkspace({
         <div
           role={error ? "alert" : "status"}
           className={cn(
-            "mt-5 flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-[12.5px]",
-            error ? "border-rust/20 bg-rust-soft text-rust" : "border-moss/20 bg-moss-soft text-moss",
+            "animate-rise mt-5 flex items-start justify-between gap-3 rounded-md px-4 py-3 text-sm",
+            error ? "bg-rust-soft text-rust" : "bg-moss-soft text-moss",
           )}
         >
           <p>{error ?? notice}</p>
@@ -304,23 +302,23 @@ export function PlannerWorkspace({
               setError(null);
               setNotice(null);
             }}
-            className="shrink-0 opacity-60 hover:opacity-100"
+            className="-mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors duration-200 hover:bg-black/[0.07]"
             aria-label="Dismiss"
           >
-            <X size={13} aria-hidden />
+            <X size={14} aria-hidden />
           </button>
         </div>
       )}
 
-      <section className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line lg:grid-cols-4">
+      <section className="stagger mt-7 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Metric label="Due today" value={data.stats.todayTotal} hint={`${data.stats.todayDone} completed`} />
         <Metric label="Overdue" value={data.stats.overdue} hint={data.stats.overdue > 0 ? "Reschedule, don't ignore" : "Nothing behind"} accent={data.stats.overdue > 0 ? "rust" : undefined} />
         <Metric label="Completed this week" value={data.stats.weekDone} hint={`${data.stats.minutesThisWeek} focused minutes`} accent="moss" />
         <Metric label="Current streak" value={`${data.stats.streak}d`} hint={`${data.stats.activeDays} active days this week`} />
       </section>
 
-      <div className="mt-6 flex items-center justify-between gap-3 overflow-x-auto pb-1">
-        <div role="tablist" aria-label="Planner views" className="flex shrink-0 gap-1 rounded-md border border-line bg-paper p-1">
+      <div className="hb-scroll-x mt-7 flex items-center justify-between gap-3">
+        <div role="tablist" aria-label="Planner views" className="hb-segment shrink-0">
           {(
             [
               ["today", "Today"],
@@ -335,8 +333,8 @@ export function PlannerWorkspace({
               aria-selected={view === value}
               onClick={() => setView(value)}
               className={cn(
-                "rounded-[4px] px-3 py-1.5 text-[12px] font-medium transition-colors",
-                view === value ? "bg-ink text-paper" : "text-graphite hover:bg-paper-2",
+                "h-8 px-4 text-sm font-medium",
+                view === value ? "bg-paper text-ink shadow-sm" : "text-graphite hover:text-ink",
               )}
             >
               {label}
@@ -345,17 +343,17 @@ export function PlannerWorkspace({
         </div>
         <Link
           href="/journey"
-          className="hidden shrink-0 items-center gap-1.5 text-[11.5px] font-medium text-muted hover:text-ink sm:flex"
+          className="hb-link hidden shrink-0 text-sm sm:flex"
         >
-          <Target size={13} aria-hidden />
+          <Target size={14} aria-hidden />
           Plan from your roadmap
         </Link>
       </div>
 
-      <div className="mt-5">
+      <div key={view} className="hb-swap-in mt-6">
         {view === "today" && (
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-            <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="min-w-0 space-y-7">
               {overdue.length > 0 && (
                 <TaskGroup
                   title="Overdue"
@@ -395,43 +393,39 @@ export function PlannerWorkspace({
             </div>
 
             <aside className="space-y-4">
-              <div className="rounded-lg border border-line bg-paper p-5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-                  This week
+              <div className="hb-card p-6">
+                <p className="text-sm font-semibold text-ink">This week</p>
+                <p className="stat-value mt-3">
+                  {data.stats.weekDone} <span className="text-md font-normal tracking-normal text-muted">done</span>
                 </p>
-                <p className="mt-2 font-display text-[26px] leading-none">
-                  {data.stats.weekDone} <span className="text-[15px] text-muted">done</span>
-                </p>
-                <div className="mt-3 h-1 overflow-hidden rounded-full bg-paper-3">
+                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-paper-3">
                   <div
-                    className="h-full rounded-full bg-ink transition-all duration-700"
+                    className="h-full rounded-full bg-accent transition-[width] duration-1000 ease-out-expo"
                     style={{
                       width: `${Math.min(100, (data.stats.weekDone / Math.max(1, data.stats.weekTotal)) * 100)}%`,
                     }}
                   />
                 </div>
-                <p className="mt-2 text-[11px] text-muted">
+                <p className="mt-2.5 text-xs text-muted">
                   {data.stats.weekTotal} task{data.stats.weekTotal === 1 ? "" : "s"} in the week window
                 </p>
               </div>
 
-              <div className="rounded-lg border border-line bg-paper p-5">
+              <div className="hb-card p-6">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-                    Active goals
-                  </p>
+                  <p className="text-sm font-semibold text-ink">Active goals</p>
                   <button
                     type="button"
                     onClick={() =>
                       setGoalForm({ title: "", description: "", category: "personal", targetDate: "" })
                     }
-                    className="text-[11px] font-medium text-ink"
+                    className="hb-link text-sm"
                   >
                     Add
                   </button>
                 </div>
                 {data.goals.filter((goal) => goal.status === "active").length === 0 ? (
-                  <p className="mt-2 text-[11.5px] leading-relaxed text-muted">
+                  <p className="mt-2 text-sm leading-relaxed text-muted">
                     No personal goals yet. Career is not the only thing worth planning.
                   </p>
                 ) : (
@@ -442,10 +436,10 @@ export function PlannerWorkspace({
                       .map((goal) => (
                         <li key={goal.id}>
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-[12px] font-medium text-ink">{goal.title}</p>
-                            <span className="shrink-0 text-[10.5px] text-faint">{goal.category}</span>
+                            <p className="text-sm font-medium text-ink">{goal.title}</p>
+                            <span className="shrink-0 text-2xs capitalize text-muted">{goal.category}</span>
                           </div>
-                          <p className="mt-0.5 text-[10.5px] text-muted">
+                          <p className="mt-0.5 text-2xs text-muted">
                             {goal.doneCount}/{goal.taskCount} linked tasks done
                           </p>
                         </li>
@@ -454,8 +448,8 @@ export function PlannerWorkspace({
                 )}
               </div>
 
-              <div className="rounded-lg border border-line bg-paper-2 p-4">
-                <p className="text-[11px] leading-relaxed text-muted">
+              <div className="rounded-lg bg-paper-3/70 p-5">
+                <p className="text-xs leading-relaxed text-muted">
                   Human Bridge will never invent a workload. When you generate tasks from a
                   milestone, it stays within your stated availability.
                 </p>
@@ -466,50 +460,55 @@ export function PlannerWorkspace({
 
         {view === "week" && (
           <div>
-            <div className="mb-3 flex items-center justify-between">
-              <Button variant="ghost" size="sm" onClick={() => setWeekOffset((offset) => offset - 1)} aria-label="Previous week">
-                <ChevronLeft size={15} aria-hidden />
-              </Button>
-              <p className="text-[12px] font-medium text-ink">
+            <div className="mb-4 flex items-center justify-between gap-3 px-1">
+              <p className="text-xl font-semibold tracking-[-0.02em] text-ink">
                 {formatDay(weekDays[0], { day: "numeric", month: "short" })} –{" "}
                 {formatDay(weekDays[6], { day: "numeric", month: "short", year: "numeric" })}
               </p>
-              <div className="flex items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1">
                 {weekOffset !== 0 && (
                   <Button variant="ghost" size="sm" onClick={() => setWeekOffset(0)}>
                     This week
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={() => setWeekOffset((offset) => offset + 1)} aria-label="Next week">
-                  <ChevronRight size={15} aria-hidden />
-                </Button>
+                <CalendarNavButton label="Previous week" onClick={() => setWeekOffset((offset) => offset - 1)}>
+                  <ChevronLeft size={17} aria-hidden />
+                </CalendarNavButton>
+                <CalendarNavButton label="Next week" onClick={() => setWeekOffset((offset) => offset + 1)}>
+                  <ChevronRight size={17} aria-hidden />
+                </CalendarNavButton>
               </div>
             </div>
             <div className="hb-scroll-x pb-2">
-              <div className="grid min-w-[760px] grid-cols-7 gap-px overflow-hidden rounded-lg border border-line bg-line">
+              <div className="grid min-w-[760px] grid-cols-7 gap-px overflow-hidden rounded-lg bg-line shadow-xs ring-1 ring-line">
                 {weekDays.map((day) => {
                   const dayTasks = data.tasks.filter(
                     (task) => task.scheduledFor && sameDay(new Date(task.scheduledFor), day),
                   );
                   const isToday = sameDay(day, today);
                   return (
-                    <div key={dayKey(day)} className={cn("min-h-[280px] bg-paper p-2.5", isToday && "bg-paper-2")}>
-                      <div className="flex items-center justify-between">
+                    <div key={dayKey(day)} className={cn("min-h-[280px] p-3", isToday ? "bg-[#f5faff]" : "bg-paper")}>
+                      <div className="flex items-start justify-between">
                         <div>
-                          <p className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-faint">
+                          <p className={cn("text-xs font-medium", isToday ? "text-link" : "text-muted")}>
                             {formatDay(day, { weekday: "short" })}
                           </p>
-                          <p className={cn("text-[16px] font-medium tabular", isToday ? "text-ink" : "text-graphite")}>
+                          <p
+                            className={cn(
+                              "tabular mt-1 flex h-8 w-8 items-center justify-center rounded-full text-base font-semibold",
+                              isToday ? "bg-accent text-white" : "-ml-2 text-ink",
+                            )}
+                          >
                             {day.getDate()}
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => setTaskForm(blankTaskForm(day))}
-                          className="flex h-6 w-6 items-center justify-center rounded text-faint hover:bg-paper-3 hover:text-ink"
+                          className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-paper-3 hover:text-ink"
                           aria-label={`Add task on ${formatDay(day)}`}
                         >
-                          <Plus size={12} aria-hidden />
+                          <Plus size={14} aria-hidden />
                         </button>
                       </div>
                       <ul className="mt-2 space-y-1.5">
@@ -519,13 +518,13 @@ export function PlannerWorkspace({
                               type="button"
                               onClick={() => void toggleTask(task)}
                               className={cn(
-                                "w-full rounded border px-2 py-1.5 text-left text-[10.5px] leading-snug transition-colors",
+                                "w-full rounded-sm px-2.5 py-2 text-left text-2xs leading-snug transition-colors duration-200",
                                 task.status === "done"
-                                  ? "border-line bg-paper-2 text-faint line-through"
-                                  : "border-line bg-paper text-graphite hover:border-line-strong",
+                                  ? "bg-paper-2 text-muted line-through"
+                                  : "bg-paper-2 text-ink hover:bg-paper-3",
                               )}
                             >
-                              <span className={cn("mb-1 block h-1 w-4 rounded-full", PRIORITY_STYLES[task.priority].dot)} />
+                              <span className={cn("mb-1.5 block h-1 w-4 rounded-full", PRIORITY_STYLES[task.priority].dot)} />
                               {task.title}
                             </button>
                           </li>
@@ -536,42 +535,38 @@ export function PlannerWorkspace({
                 })}
               </div>
             </div>
-            <p className="mt-2 text-[10.5px] text-faint">Swipe horizontally on smaller screens.</p>
+            <p className="mt-2.5 text-xs text-muted md:hidden">Swipe horizontally on smaller screens.</p>
           </div>
         )}
 
         {view === "month" && (
           <div>
-            <div className="mb-3 flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}
-                aria-label="Previous month"
-              >
-                <ChevronLeft size={15} aria-hidden />
-              </Button>
-              <p className="text-[12.5px] font-medium text-ink">
+            <div className="mb-4 flex items-center justify-between gap-3 px-1">
+              <p className="text-xl font-semibold tracking-[-0.02em] text-ink">
                 {new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }).format(monthCursor)}
               </p>
-              <div className="flex items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1">
                 <Button variant="ghost" size="sm" onClick={() => setMonthCursor(new Date(today.getFullYear(), today.getMonth(), 1))}>
                   Today
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))}
-                  aria-label="Next month"
+                <CalendarNavButton
+                  label="Previous month"
+                  onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}
                 >
-                  <ChevronRight size={15} aria-hidden />
-                </Button>
+                  <ChevronLeft size={17} aria-hidden />
+                </CalendarNavButton>
+                <CalendarNavButton
+                  label="Next month"
+                  onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))}
+                >
+                  <ChevronRight size={17} aria-hidden />
+                </CalendarNavButton>
               </div>
             </div>
-            <div className="overflow-hidden rounded-lg border border-line">
-              <div className="grid grid-cols-7 border-b border-line bg-paper-2">
+            <div className="overflow-hidden rounded-lg bg-paper shadow-xs ring-1 ring-line">
+              <div className="grid grid-cols-7 border-b border-line">
                 {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-                  <div key={day} className="px-1.5 py-2 text-center text-[9.5px] font-semibold uppercase tracking-[0.1em] text-faint">
+                  <div key={day} className="px-1.5 py-2.5 text-center text-xs font-medium text-muted">
                     {day}
                   </div>
                 ))}
@@ -589,36 +584,36 @@ export function PlannerWorkspace({
                       key={dayKey(day)}
                       onClick={() => setTaskForm(blankTaskForm(day))}
                       className={cn(
-                        "min-h-[64px] bg-paper p-1.5 text-left align-top transition-colors hover:bg-paper-2 sm:min-h-[92px]",
-                        !inMonth && "bg-paper-2/60",
+                        "flex min-h-[64px] flex-col items-stretch justify-start bg-paper p-1.5 text-left transition-colors duration-200 hover:bg-paper-2 sm:min-h-[96px] sm:p-2",
+                        !inMonth && "bg-paper-2",
                       )}
                       aria-label={`Add or view tasks on ${formatDay(day)}`}
                     >
                       <span
                         className={cn(
-                          "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10.5px] tabular",
-                          isToday ? "bg-ink font-semibold text-paper" : inMonth ? "text-graphite" : "text-faint",
+                          "tabular inline-flex h-6 w-6 shrink-0 items-center justify-center self-start rounded-full text-xs",
+                          isToday ? "bg-accent font-semibold text-white" : inMonth ? "text-ink" : "text-muted",
                         )}
                       >
                         {day.getDate()}
                       </span>
-                      <span className="mt-1 hidden space-y-0.5 sm:block">
+                      <span className="mt-1.5 hidden min-w-0 space-y-1 sm:block">
                         {dayTasks.slice(0, 2).map((task) => (
                           <span
                             key={task.id}
                             className={cn(
-                              "block truncate rounded bg-paper-3 px-1 py-0.5 text-[9px] leading-tight text-graphite",
-                              task.status === "done" && "line-through opacity-60",
+                              "block truncate rounded-xs px-1.5 py-0.5 text-2xs leading-tight",
+                              task.status === "done" ? "bg-paper-2 text-muted line-through" : "bg-accent-soft text-ink",
                             )}
                           >
                             {task.title}
                           </span>
                         ))}
                         {dayTasks.length > 2 && (
-                          <span className="block px-1 text-[8.5px] text-faint">+{dayTasks.length - 2} more</span>
+                          <span className="block px-1.5 text-2xs text-muted">+{dayTasks.length - 2} more</span>
                         )}
                       </span>
-                      <span className="mt-1 flex gap-0.5 sm:hidden">
+                      <span className="mt-1.5 flex gap-0.5 pl-1.5 sm:hidden">
                         {dayTasks.slice(0, 3).map((task) => (
                           <span
                             key={task.id}
@@ -635,8 +630,8 @@ export function PlannerWorkspace({
         )}
 
         {view === "goals" && (
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-            <div>
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="min-w-0">
               {data.goals.length === 0 ? (
                 <EmptyState
                   title="No goals yet"
@@ -649,22 +644,22 @@ export function PlannerWorkspace({
                   }
                 />
               ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {data.goals.map((goal) => (
-                    <li key={goal.id} className="rounded-lg border border-line bg-paper p-4">
+                    <li key={goal.id} className="hb-card p-5 sm:p-6">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-[13px] font-medium text-ink">{goal.title}</p>
-                            <Badge size="sm" variant={goal.category === "career" ? "dark" : "outline"}>
+                            <p className="text-md font-medium text-ink">{goal.title}</p>
+                            <Badge size="sm" variant={goal.category === "career" ? "dark" : "outline"} className="capitalize">
                               {goal.category}
                             </Badge>
                             {goal.status === "completed" && <Badge size="sm" variant="green">Complete</Badge>}
                           </div>
                           {goal.description && (
-                            <p className="mt-1 text-[11.5px] leading-relaxed text-muted">{goal.description}</p>
+                            <p className="mt-1.5 text-sm leading-relaxed text-muted">{goal.description}</p>
                           )}
-                          <p className="mt-2 text-[10.5px] text-faint">
+                          <p className="mt-2 text-xs text-muted">
                             {goal.doneCount}/{goal.taskCount} linked tasks done
                             {goal.targetDate && ` · target ${formatDay(new Date(goal.targetDate), { day: "numeric", month: "short", year: "numeric" })}`}
                           </p>
@@ -679,9 +674,9 @@ export function PlannerWorkspace({
                           {goal.status === "completed" ? "Reopen" : "Complete"}
                         </Button>
                       </div>
-                      <div className="mt-3 h-1 overflow-hidden rounded-full bg-paper-3">
+                      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-paper-3">
                         <div
-                          className="h-full rounded-full bg-ink"
+                          className="h-full rounded-full bg-accent transition-[width] duration-1000 ease-out-expo"
                           style={{ width: `${goal.taskCount === 0 ? 0 : (goal.doneCount / goal.taskCount) * 100}%` }}
                         />
                       </div>
@@ -690,9 +685,9 @@ export function PlannerWorkspace({
                 </ul>
               )}
             </div>
-            <aside className="rounded-lg border border-line bg-paper-2 p-5">
-              <p className="font-display text-[22px] leading-tight">Plan the whole life, not just the job.</p>
-              <p className="mt-2 text-[12px] leading-relaxed text-muted">
+            <aside className="hb-card self-start p-6">
+              <p className="text-xl font-semibold leading-tight tracking-[-0.02em] text-ink">Plan the whole life, not just the job.</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted">
                 Personal goals are supported here, but the planner&apos;s intelligence stays focused on
                 your career roadmap. Tasks can link to either.
               </p>
@@ -940,7 +935,7 @@ export function PlannerWorkspace({
           </>
         }
       >
-        <p className="text-[12.5px] leading-relaxed text-graphite">
+        <p className="text-sm leading-relaxed text-graphite">
           “{confirmTask?.title}” will be removed from your plan. This cannot be undone.
         </p>
       </Modal>
@@ -965,6 +960,27 @@ function taskToForm(task: PlannerTaskView): TaskFormState {
   };
 }
 
+function CalendarNavButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="flex h-8 w-8 items-center justify-center rounded-full bg-paper text-graphite shadow-xs ring-1 ring-line transition-[background-color,color,transform] duration-200 ease-apple hover:bg-paper-3 hover:text-ink active:scale-95"
+    >
+      {children}
+    </button>
+  );
+}
+
 function Metric({
   label,
   value,
@@ -977,8 +993,8 @@ function Metric({
   accent?: "moss" | "rust";
 }) {
   return (
-    <div className="bg-paper p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-faint">{label}</p>
+    <div className="hb-card p-5 sm:p-6">
+      <p className="text-xs font-medium text-muted">{label}</p>
       <p
         className={cn(
           "stat-value mt-2",
@@ -987,7 +1003,7 @@ function Metric({
       >
         {value}
       </p>
-      <p className="mt-1 text-[10.5px] text-muted">{hint}</p>
+      <p className="mt-1.5 text-2xs leading-relaxed text-muted">{hint}</p>
     </div>
   );
 }
@@ -1019,74 +1035,74 @@ function TaskGroup({
 }) {
   return (
     <section>
-      <div className="flex items-center justify-between border-b border-line pb-2">
+      <div className="flex items-center justify-between px-1">
         <h2
           className={cn(
-            "flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]",
-            tone === "rust" ? "text-rust" : "text-graphite",
+            "flex items-center gap-2 text-base font-semibold",
+            tone === "rust" ? "text-rust" : "text-ink",
           )}
         >
           {title}
-          <span className="rounded-full bg-paper-3 px-1.5 py-0.5 text-[10px] font-medium tabular text-muted">
+          <span className="tabular rounded-full bg-paper-4 px-2 py-0.5 text-2xs font-medium text-graphite">
             {tasks.length}
           </span>
         </h2>
         {onAdd && (
-          <button type="button" onClick={onAdd} className="flex items-center gap-1 text-[11px] font-medium text-muted hover:text-ink">
-            <Plus size={12} aria-hidden />
+          <button type="button" onClick={onAdd} className="hb-link text-sm">
+            <Plus size={14} aria-hidden />
             Add
           </button>
         )}
       </div>
 
       {tasks.length === 0 && emptyMessage ? (
-        <div className="mt-4 rounded-lg border border-dashed border-line-strong px-4 py-6 text-center">
-          <p className="text-[12px] text-muted">{emptyMessage}</p>
+        <div className="hb-card mt-3 px-5 py-9 text-center">
+          <p className="mx-auto max-w-md text-md leading-relaxed text-muted">{emptyMessage}</p>
           {onAdd && addLabel && (
-            <Button variant="secondary" size="sm" className="mt-3" onClick={onAdd}>
-              <Plus size={12} aria-hidden />
+            <Button variant="secondary" size="md" className="mt-5" onClick={onAdd}>
+              <Plus size={15} aria-hidden />
               {addLabel}
             </Button>
           )}
         </div>
       ) : (
-        <ul className="mt-2 divide-y divide-line">
+        <ul className="hb-card mt-3 divide-y divide-line px-5">
           {tasks.map((task) => {
             const done = task.status === "done";
             const isBusy = busy === `task-${task.id}`;
             const overdue =
               !done && task.scheduledFor && startOfDay(new Date(task.scheduledFor)) < today;
             return (
-              <li key={task.id} className="group flex items-start gap-3 py-3">
+              <li key={task.id} className="group flex items-start gap-3.5 py-4">
                 <button
                   type="button"
                   onClick={() => void onToggle(task)}
                   disabled={isBusy}
                   aria-label={done ? `Mark ${task.title} not done` : `Mark ${task.title} done`}
                   className={cn(
-                    "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+                    "mt-px flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-[background-color,border-color,transform] duration-200 ease-apple active:scale-90",
                     done
-                      ? "border-ink bg-ink text-paper"
-                      : "border-line-strong bg-paper text-transparent hover:border-ink",
+                      ? "border-accent bg-accent text-white"
+                      : "border-field bg-paper text-transparent hover:border-accent hover:bg-accent-soft",
                   )}
                 >
                   {isBusy ? (
-                    <Loader2 size={10} className="animate-spin text-muted" aria-hidden />
+                    <Loader2 size={11} className="animate-spin text-muted" aria-hidden />
                   ) : (
-                    <Check size={11} strokeWidth={2.6} aria-hidden />
+                    <Check size={12} strokeWidth={3} aria-hidden />
                   )}
                 </button>
 
                 <div className="min-w-0 flex-1">
                   <p
                     className={cn(
-                      "text-[13px] leading-snug",
+                      "text-md leading-snug",
                       done ? "text-muted line-through decoration-line-strong" : "text-ink",
                     )}
                   >
                     {task.title}
                   </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-muted">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-muted">
                     <span className="flex items-center gap-1">
                       <span className={cn("h-1.5 w-1.5 rounded-full", PRIORITY_STYLES[task.priority].dot)} aria-hidden />
                       <span className={PRIORITY_STYLES[task.priority].text}>{PRIORITY_STYLES[task.priority].label}</span>
@@ -1109,7 +1125,7 @@ function TaskGroup({
                     {task.milestoneTitle && (
                       <Link
                         href="/journey"
-                        className="flex max-w-[220px] items-center gap-1 truncate text-graphite underline decoration-line underline-offset-2 hover:text-ink"
+                        className="flex max-w-[240px] items-center gap-1 truncate text-link hover:underline hover:underline-offset-2"
                       >
                         <Target size={10} className="shrink-0" aria-hidden />
                         <span className="truncate">{task.milestoneTitle}</span>
@@ -1127,18 +1143,18 @@ function TaskGroup({
                   <button
                     type="button"
                     onClick={() => onEdit(task)}
-                    className="flex h-7 w-7 items-center justify-center rounded text-faint hover:bg-paper-3 hover:text-ink"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-paper-3 hover:text-ink"
                     aria-label={`Edit ${task.title}`}
                   >
-                    <Pencil size={12} aria-hidden />
+                    <Pencil size={14} aria-hidden />
                   </button>
                   <button
                     type="button"
                     onClick={() => onDelete(task)}
-                    className="flex h-7 w-7 items-center justify-center rounded text-faint hover:bg-rust-soft hover:text-rust"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-rust-soft hover:text-rust"
                     aria-label={`Delete ${task.title}`}
                   >
-                    <Trash2 size={12} aria-hidden />
+                    <Trash2 size={14} aria-hidden />
                   </button>
                 </div>
               </li>

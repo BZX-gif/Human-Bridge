@@ -1,9 +1,22 @@
 import type { NextConfig } from "next";
 
+/**
+ * Extra hosts allowed to load Next's dev-only resources (HMR socket, dev
+ * endpoints) when `next dev` is reached through a proxy or preview URL instead
+ * of localhost. Comma-separated, wildcards allowed, e.g. `*.example.dev`.
+ * Development only: production builds ignore this entirely.
+ */
+const allowedDevOrigins = (process.env.HB_ALLOWED_DEV_ORIGINS ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
   // Database drivers must run as real Node modules. Bundling them breaks
   // PGlite's wasm/filesystem loader and pg's socket handling.
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
+
+  ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),
 
   poweredByHeader: false,
 

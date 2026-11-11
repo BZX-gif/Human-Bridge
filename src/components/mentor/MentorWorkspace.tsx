@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowRight,
   ArrowUp,
   CalendarDays,
+  ChevronRight,
   Info,
   Loader2,
   RotateCcw,
@@ -14,7 +14,6 @@ import {
   Target,
 } from "lucide-react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
-import { ButtonLink } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -76,6 +75,8 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
   const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    // Nothing to follow yet: keep the opening context in view.
+    if (messages.length === 0 && !sending) return;
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages, sending]);
 
@@ -117,16 +118,14 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
 
   return (
     <div className="app-page">
-      <header className="flex flex-col gap-3 border-b border-line pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2.5">
+      <header className="animate-rise flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3">
             <PaperMark className="paper-mark-hero" />
             <p className="eyebrow">Paper · Your career guide</p>
           </div>
-          <h1 className="mt-3 font-display text-[clamp(2.1rem,4.5vw,3rem)] leading-[1.02] tracking-[-0.02em]">
-            A thinking partner, not a fortune teller.
-          </h1>
-          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">
+          <h1 className="display-md mt-4 text-ink">A thinking partner, not a fortune teller.</h1>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">
             Ask Paper about your next step, a gap, a project or your week. It sees your real plan
             and evidence — and nothing else. It will not invent an outcome.
           </p>
@@ -134,13 +133,11 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
         <div className="flex shrink-0 items-center gap-2">
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-[4px] border px-2 py-1 text-[10px] font-medium",
-              summary.aiConfigured
-                ? "border-moss/25 bg-moss-soft text-moss"
-                : "border-line bg-paper-2 text-muted",
+              "inline-flex h-8 items-center gap-2 rounded-full px-3.5 text-xs font-medium",
+              summary.aiConfigured ? "bg-moss-soft text-moss" : "bg-paper-4 text-graphite",
             )}
           >
-            <span className={cn("h-1.5 w-1.5 rounded-full", summary.aiConfigured ? "bg-moss" : "bg-faint")} aria-hidden />
+            <span className={cn("h-1.5 w-1.5 rounded-full", summary.aiConfigured ? "bg-moss" : "bg-muted")} aria-hidden />
             {summary.aiConfigured ? "AI available" : "Guided mode"}
           </span>
           {messages.length > 0 && (
@@ -151,27 +148,30 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
                 setNotices([]);
                 setError(null);
               }}
-              className="inline-flex items-center gap-1 rounded-[4px] border border-line px-2 py-1 text-[10px] font-medium text-muted hover:border-line-strong hover:text-ink"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-paper px-3.5 text-xs font-medium text-ink shadow-xs ring-1 ring-line transition-[background-color,transform] duration-200 ease-apple hover:bg-paper-3 active:scale-[0.97]"
             >
-              <RotateCcw size={10} aria-hidden />
+              <RotateCcw size={13} aria-hidden />
               Clear
             </button>
           )}
         </div>
       </header>
 
-      <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="flex min-h-[560px] flex-col overflow-hidden rounded-lg border border-line bg-paper">
-          <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6" style={{ maxHeight: "62vh" }}>
+      <div className="mt-7 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-5">
+        <section className="hb-card animate-rise-lg flex min-h-[460px] flex-col overflow-clip [animation-delay:80ms]">
+          <div
+            className="flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-7"
+            style={{ maxHeight: "max(320px, min(62vh, calc(100dvh - 440px)))" }}
+          >
             {/* Opening context, not a fake assistant message */}
-            <div className="rounded-lg border border-line bg-paper-2 p-4">
-              <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-                <Sparkles size={11} aria-hidden />
+            <div className="rounded-lg bg-paper-2 p-5">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+                <Sparkles size={15} className="text-link" aria-hidden />
                 Where you are
               </p>
-              <p className="mt-2 text-[12.5px] leading-relaxed text-graphite">{opening}</p>
+              <p className="mt-2 text-md leading-relaxed text-graphite">{opening}</p>
               {summary.gaps.length > 0 && (
-                <p className="mt-2 text-[11.5px] leading-relaxed text-muted">
+                <p className="mt-2 text-sm leading-relaxed text-muted">
                   Largest recorded gap: {summary.gaps[0].name} ({summary.gaps[0].currentScore}/
                   {summary.gaps[0].requiredScore} required).
                 </p>
@@ -179,17 +179,15 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
             </div>
 
             {messages.length === 0 && (
-              <div className="mt-5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-                  Start with a question
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-2">
+              <div className="mt-7">
+                <p className="text-sm font-medium text-muted">Start with a question</p>
+                <div className="stagger mt-3 flex flex-wrap gap-2">
                   {PROMPTS.map((prompt) => (
                     <button
                       key={prompt}
                       type="button"
                       onClick={() => void send(prompt)}
-                      className="rounded-full border border-line bg-paper px-3 py-1.5 text-left text-[11px] text-graphite transition-colors hover:border-ink hover:text-ink"
+                      className="rounded-full bg-paper px-4 py-2 text-left text-sm text-ink ring-1 ring-inset ring-line-strong transition-[background-color,box-shadow,color,transform] duration-200 ease-apple hover:bg-accent-soft hover:text-link hover:ring-accent/40 active:scale-[0.98]"
                     >
                       {prompt}
                     </button>
@@ -198,23 +196,21 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
               </div>
             )}
 
-            <div className="mt-5 space-y-4">
+            <div className="mt-6 space-y-4">
               {messages.map((message, index) =>
                 message.role === "user" ? (
-                  <div key={index} className="flex justify-end gap-2.5">
-                    <div className="max-w-[85%] rounded-lg rounded-br-[3px] bg-ink px-4 py-3 text-[12.5px] leading-relaxed text-paper">
+                  <div key={index} className="hb-swap-in flex justify-end">
+                    <div className="max-w-[85%] rounded-[20px] rounded-br-[6px] bg-accent px-4 py-2.5 text-md leading-relaxed text-white">
                       <p className="whitespace-pre-line">{message.content}</p>
                     </div>
                   </div>
                 ) : (
-                  <div key={index} className="flex justify-start gap-2.5">
-                    <PaperMark className="paper-mark-avatar mt-0.5 h-6 w-6 shrink-0 rounded-full" />
-                    <div className="max-w-[88%] rounded-lg rounded-bl-[3px] border border-line bg-paper px-4 py-3">
-                      <p className="whitespace-pre-line text-[12.5px] leading-[1.75] text-graphite">
-                        {message.content}
-                      </p>
+                  <div key={index} className="hb-swap-in flex items-end justify-start gap-2.5">
+                    <PaperMark className="paper-mark-avatar h-7 w-7 shrink-0 rounded-full" />
+                    <div className="max-w-[88%] rounded-[20px] rounded-bl-[6px] bg-paper-2 px-4 py-3">
+                      <p className="whitespace-pre-line text-md leading-relaxed text-ink">{message.content}</p>
                       {message.mode && (
-                        <p className="mt-2 border-t border-line pt-2 text-[9.5px] uppercase tracking-[0.12em] text-faint">
+                        <p className="mt-2.5 border-t border-line-strong/60 pt-2 text-xs text-muted">
                           {message.mode === "ai" ? "AI guidance" : "Guided response · from your plan"}
                         </p>
                       )}
@@ -223,11 +219,16 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
                 ),
               )}
               {sending && (
-                <div className="flex items-center gap-2.5 text-[11px] text-faint" role="status">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full border border-line bg-paper-2">
-                    <Loader2 size={11} className="animate-spin" aria-hidden />
-                  </span>
-                  Reading your plan…
+                <div className="hb-swap-in flex items-end gap-2.5" role="status">
+                  <PaperMark className="paper-mark-avatar h-7 w-7 shrink-0 rounded-full" />
+                  <div className="rounded-[20px] rounded-bl-[6px] bg-paper-2 px-4 py-3.5">
+                    <span className="hb-typing" aria-hidden>
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                    <span className="sr-only">Reading your plan…</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -235,12 +236,12 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
           </div>
 
           {error && (
-            <div role="alert" className="mx-4 mb-2 rounded-md border border-rust/20 bg-rust-soft px-3 py-2 text-[11.5px] text-rust sm:mx-6">
+            <div role="alert" className="mx-4 mb-2 rounded-md bg-rust-soft px-4 py-2.5 text-sm text-rust sm:mx-7">
               {error}
             </div>
           )}
           {notices.length > 0 && (
-            <div role="status" className="mx-4 mb-2 rounded-md border border-line bg-paper-2 px-3 py-2 text-[10.5px] leading-relaxed text-muted sm:mx-6">
+            <div role="status" className="mx-4 mb-2 rounded-md bg-paper-2 px-4 py-2.5 text-xs leading-relaxed text-muted sm:mx-7">
               {notices[0]}
             </div>
           )}
@@ -250,9 +251,9 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
               event.preventDefault();
               void send(input);
             }}
-            className="border-t border-line bg-paper p-3 sm:p-4"
+            className="border-t border-line p-3 sm:px-7 sm:py-4"
           >
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-2 rounded-[22px] bg-paper-2 p-1.5 ring-1 ring-inset ring-line-strong transition-[box-shadow,background-color] duration-200 ease-apple focus-within:bg-paper focus-within:ring-2 focus-within:ring-accent">
               <label htmlFor="mentor-input" className="sr-only">
                 Ask Paper
               </label>
@@ -266,68 +267,68 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
                     void send(input);
                   }
                 }}
-                rows={2}
+                rows={1}
                 maxLength={4000}
                 placeholder="Ask about your next step, a gap, or how to plan your week…"
-                className="hb-input min-h-[44px] resize-none py-2.5"
+                className="max-h-40 min-h-[36px] min-w-0 flex-1 resize-none bg-transparent px-3 py-1.5 text-md leading-relaxed text-ink [field-sizing:content] placeholder:text-muted focus:outline-none"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || sending}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-ink text-paper transition-colors hover:bg-ink-soft disabled:opacity-40"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-white transition-[background-color,transform,opacity] duration-200 ease-apple hover:bg-accent-hover active:scale-90 disabled:bg-paper-4 disabled:text-muted"
                 aria-label="Send message"
               >
-                {sending ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <ArrowUp size={15} aria-hidden />}
+                {sending ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <ArrowUp size={17} strokeWidth={2.4} aria-hidden />}
               </button>
             </div>
-            <p className="mt-2 text-[9.5px] leading-relaxed text-faint">
+            <p className="mt-2.5 px-1 text-xs leading-relaxed text-muted">
               {disclaimer} Press Enter to send, Shift + Enter for a new line.
             </p>
           </form>
         </section>
 
-        <aside className="space-y-4">
-          <div className="rounded-lg border border-line bg-paper p-5">
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-              <Info size={11} aria-hidden />
+        <aside className="space-y-4 lg:space-y-5">
+          <div className="hb-card p-6">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <Info size={15} aria-hidden />
               What it can see
             </p>
-            <dl className="mt-3 space-y-2.5 text-[11.5px]">
+            <dl className="mt-4 space-y-3 text-sm">
               <div className="flex items-start justify-between gap-3">
                 <dt className="text-muted">Career goal</dt>
-                <dd className="text-right font-medium text-graphite">{summary.careerName ?? "Not chosen"}</dd>
+                <dd className="text-right font-medium text-ink">{summary.careerName ?? "Not chosen"}</dd>
               </div>
               <div className="flex items-start justify-between gap-3">
                 <dt className="text-muted">Roadmap progress</dt>
-                <dd className="text-right font-medium text-graphite tabular">{summary.progress}%</dd>
+                <dd className="tabular text-right font-medium text-ink">{summary.progress}%</dd>
               </div>
               <div className="flex items-start justify-between gap-3">
-                <dt className="text-muted">Current focus</dt>
-                <dd className="max-w-[170px] text-right font-medium leading-snug text-graphite">
+                <dt className="shrink-0 text-muted">Current focus</dt>
+                <dd className="max-w-[170px] text-right font-medium leading-snug text-ink">
                   {summary.currentFocus ?? "None"}
                 </dd>
               </div>
               <div className="flex items-start justify-between gap-3">
                 <dt className="text-muted">Verified skills</dt>
-                <dd className="text-right font-medium text-graphite tabular">{summary.verifiedSkills}</dd>
+                <dd className="tabular text-right font-medium text-ink">{summary.verifiedSkills}</dd>
               </div>
               <div className="flex items-start justify-between gap-3">
                 <dt className="text-muted">Stated time</dt>
-                <dd className="text-right font-medium text-graphite tabular">{summary.weeklyHours}h/week</dd>
+                <dd className="tabular text-right font-medium text-ink">{summary.weeklyHours}h/week</dd>
               </div>
             </dl>
-            <p className="mt-3 border-t border-line pt-3 text-[10px] leading-relaxed text-faint">
+            <p className="mt-4 border-t border-line pt-4 text-xs leading-relaxed text-muted">
               It cannot see your email, password, private messages or anything you have not recorded
               in Human Bridge.
             </p>
           </div>
 
-          <div className="rounded-lg border border-line bg-paper-2 p-5">
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-              <ShieldCheck size={11} aria-hidden />
+          <div className="hb-card p-6">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <ShieldCheck size={15} className="text-moss" aria-hidden />
               Honest by design
             </p>
-            <ul className="mt-2.5 space-y-2 text-[10.5px] leading-relaxed text-muted">
+            <ul className="mt-3 space-y-2.5 text-sm leading-relaxed text-muted">
               <li>It uses only your recorded plan, skills and evidence.</li>
               <li>It will not invent resources, employers, salaries or vacancies.</li>
               <li>It will not call a skill verified unless an assessment or employer did.</li>
@@ -336,60 +337,60 @@ export function MentorWorkspace({ summary }: { summary: MentorSummary }) {
           </div>
 
           {summary.gaps.length > 0 && (
-            <div className="rounded-lg border border-line bg-paper p-5">
-              <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-                <Target size={11} aria-hidden />
+            <div className="hb-card p-6">
+              <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+                <Target size={15} aria-hidden />
                 Recorded gaps
               </p>
-              <ul className="mt-2.5 space-y-2">
+              <ul className="mt-4 space-y-3.5">
                 {summary.gaps.slice(0, 4).map((gap) => (
-                  <li key={gap.name} className="text-[11px]">
+                  <li key={gap.name} className="text-sm">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-graphite">{gap.name}</span>
-                      <span className="text-[10px] tabular text-faint">
+                      <span className="text-ink">{gap.name}</span>
+                      <span className="tabular text-xs text-muted">
                         {gap.currentScore}/{gap.requiredScore}
                       </span>
                     </div>
-                    <div className="mt-1 h-1 overflow-hidden rounded-full bg-paper-3">
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-paper-3">
                       <div
-                        className="h-full rounded-full bg-graphite"
+                        className="h-full rounded-full bg-accent"
                         style={{ width: `${Math.min(100, Math.round((gap.currentScore / Math.max(1, gap.requiredScore)) * 100))}%` }}
                       />
                     </div>
                   </li>
                 ))}
               </ul>
-              <ButtonLink href="/skills" variant="ghost" size="sm" className="mt-2 px-0">
+              <Link href="/skills" className="hb-link mt-4 text-sm">
                 Open skills
-                <ArrowRight size={11} aria-hidden />
-              </ButtonLink>
+                <ChevronRight size={14} strokeWidth={2.2} aria-hidden />
+              </Link>
             </div>
           )}
 
-          <div className="rounded-lg border border-line bg-paper p-5">
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-              <CalendarDays size={11} aria-hidden />
+          <div className="hb-card p-6">
+            <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+              <CalendarDays size={15} aria-hidden />
               Today
             </p>
             {summary.todaysTasks.length === 0 ? (
-              <p className="mt-2 text-[11px] leading-relaxed text-muted">
+              <p className="mt-2 text-sm leading-relaxed text-muted">
                 Nothing scheduled. Ask Paper what deserves the time.
               </p>
             ) : (
-              <ul className="mt-2 space-y-1.5">
+              <ul className="mt-3 space-y-2.5">
                 {summary.todaysTasks.slice(0, 4).map((task) => (
-                  <li key={task.title} className="flex items-start gap-1.5 text-[11px] text-graphite">
-                    <span className={cn("mt-1.5 h-1 w-1 shrink-0 rounded-full", task.status === "done" ? "bg-moss" : "bg-faint")} aria-hidden />
+                  <li key={task.title} className="flex items-start gap-2.5 text-sm text-ink">
+                    <span className={cn("mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full", task.status === "done" ? "bg-moss" : "bg-line-strong")} aria-hidden />
                     <span className="min-w-0 flex-1 leading-snug">{task.title}</span>
-                    <span className="text-[9.5px] text-faint">{task.minutes}m</span>
+                    <span className="tabular shrink-0 text-xs text-muted">{task.minutes}m</span>
                   </li>
                 ))}
               </ul>
             )}
-            <ButtonLink href="/planner" variant="ghost" size="sm" className="mt-2 px-0">
+            <Link href="/planner" className="hb-link mt-4 text-sm">
               Open planner
-              <ArrowRight size={11} aria-hidden />
-            </ButtonLink>
+              <ChevronRight size={14} strokeWidth={2.2} aria-hidden />
+            </Link>
           </div>
         </aside>
       </div>

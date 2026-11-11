@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   Bot,
   CheckCircle2,
+  ChevronLeft,
   ClipboardList,
   Clock,
   Scale,
@@ -15,6 +17,8 @@ import { isDatabaseConfigured } from "@/db";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/States";
 import { StartAssessmentButton } from "@/components/assessment/StartAssessmentButton";
+import { formatSlug } from "@/lib/utils";
+import { InlineText } from "@/components/ui/InlineText";
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +36,8 @@ export default async function AssessmentBriefingPage({
 
   if (!isDatabaseConfigured()) {
     return (
-      <main className="min-h-full bg-paper-2">
-        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+      <main id="main-content" className="app-page app-page-narrow">
+        <div>
           <EmptyState
             title="Database not configured"
             message="Set DATABASE_URL and run npm run db:seed to load assessments."
@@ -57,50 +61,65 @@ export default async function AssessmentBriefingPage({
   const policy = blueprint.passingPolicy;
 
   return (
-    <main className="min-h-full bg-paper-2">
-      <div className="border-b border-line bg-paper">
-        <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink">
-            {blueprint.targetRole} · Work simulation · v{blueprint.version}
-          </p>
-          <h1 className="font-display text-[clamp(2rem,4vw,2.7rem)] leading-tight tracking-[-0.02em] text-ink sm:text-4xl">
-            {blueprint.title}
-          </h1>
-          <p className="mt-4 max-w-2xl leading-relaxed text-muted">{blueprint.summary}</p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            {user ? (
-              <StartAssessmentButton slug={blueprint.slug} />
-            ) : (
-              <>
-                <ButtonLink href={`/login?next=/assessments/${blueprint.slug}`}>
-                  Sign in to start
-                </ButtonLink>
-                <ButtonLink href="/signup" variant="secondary">
-                  Create a free account
-                </ButtonLink>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+    <main id="main-content" className="app-page app-page-narrow">
+      <Link href="/assessments" className="hb-link animate-rise text-sm">
+        <ChevronLeft size={15} strokeWidth={2.2} aria-hidden />
+        All assessments
+      </Link>
 
-      <div className="mx-auto max-w-4xl space-y-6 px-4 py-10 sm:px-6">
+      <section className="hb-tile hb-tile-white animate-rise mt-4 p-6 sm:p-10">
+        <p className="eyebrow">
+          {blueprint.targetRole} · Work simulation · v{blueprint.version}
+        </p>
+        <h1 className="display-lg mt-3 text-ink">{blueprint.title}</h1>
+        <p className="lede mt-4 max-w-2xl">{blueprint.summary}</p>
+        <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+          <span className="flex items-center gap-1.5">
+            <Clock size={15} aria-hidden />
+            {blueprint.durationMinutes} minutes
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Scale size={15} aria-hidden />
+            {blueprint.sections.length} sections
+          </span>
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck size={15} aria-hidden />
+            {skills.length} skills measured
+          </span>
+        </div>
+        <div className="mt-8 flex flex-wrap gap-2.5">
+          {user ? (
+            <StartAssessmentButton slug={blueprint.slug} />
+          ) : (
+            <>
+              <ButtonLink href={`/login?next=/assessments/${blueprint.slug}`} size="lg">
+                Sign in to start
+              </ButtonLink>
+              <ButtonLink href="/signup" variant="secondary" size="lg">
+                Create a free account
+              </ButtonLink>
+            </>
+          )}
+        </div>
+      </section>
+
+      <div className="mt-4 space-y-4 sm:mt-5 lg:space-y-5">
         {/* The brief */}
         {scenario && (
-          <section className="rounded-lg border border-line bg-paper p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
-              <ClipboardList size={15} className="text-ink" aria-hidden />
+          <section className="hb-card p-6 sm:p-8">
+            <h2 className="mb-4 flex items-center gap-2.5 text-xl font-semibold tracking-[-0.02em] text-ink">
+              <ClipboardList size={20} strokeWidth={1.8} className="text-link" aria-hidden />
               What you&apos;ll do
             </h2>
-            <div className="space-y-3 text-sm leading-relaxed text-muted">
+            <div className="space-y-3.5 text-base leading-relaxed text-graphite">
               {scenario.split("\n\n").map((para, i) => (
                 <p
                   key={i}
                   className={
-                    para.startsWith(">") ? "border-l-2 border-ink pl-4 italic text-graphite" : ""
+                    para.startsWith(">") ? "rounded-md bg-paper-2 px-5 py-4 text-ink" : ""
                   }
                 >
-                  {para.replace(/^>\s?/, "").replace(/\*\*/g, "")}
+                  <InlineText>{para.replace(/^>\s?/, "").replace(/\*\*/g, "")}</InlineText>
                 </p>
               ))}
             </div>
@@ -108,26 +127,24 @@ export default async function AssessmentBriefingPage({
         )}
 
         {/* Sections */}
-        <section className="rounded-lg border border-line bg-paper p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
-            <Scale size={15} className="text-ink" aria-hidden />
+        <section className="hb-card p-6 sm:p-8">
+          <h2 className="mb-4 flex items-center gap-2.5 text-xl font-semibold tracking-[-0.02em] text-ink">
+            <Scale size={20} strokeWidth={1.8} className="text-link" aria-hidden />
             How it&apos;s structured
           </h2>
           <ol className="space-y-3">
             {blueprint.sections.map((section, i) => (
-              <li key={section.key} className="flex gap-4 rounded-md bg-paper-2 p-4">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-paper text-xs font-bold text-muted">
+              <li key={section.key} className="flex gap-4 rounded-md bg-paper-2 p-5">
+                <span className="tabular flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-link">
                   {i + 1}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-ink">{section.title}</h3>
-                    <span className="text-xs font-semibold text-ink">
-                      {section.weight}% of your result
-                    </span>
+                    <h3 className="text-base font-semibold text-ink">{section.title}</h3>
+                    <span className="tabular text-sm font-medium text-muted">{section.weight}% of your result</span>
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-muted">
-                    {section.instructions}
+                  <p className="mt-1 text-sm leading-relaxed text-muted">
+                    <InlineText>{section.instructions}</InlineText>
                   </p>
                 </div>
               </li>
@@ -135,45 +152,45 @@ export default async function AssessmentBriefingPage({
           </ol>
         </section>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-5">
           {/* Skills measured */}
-          <section className="rounded-lg border border-line bg-paper p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
-              <ShieldCheck size={15} className="text-ink" aria-hidden />
+          <section className="hb-card p-6 sm:p-8">
+            <h2 className="mb-4 flex items-center gap-2.5 text-xl font-semibold tracking-[-0.02em] text-ink">
+              <ShieldCheck size={20} strokeWidth={1.8} className="text-link" aria-hidden />
               Skills measured
             </h2>
-            <ul className="flex flex-wrap gap-1.5">
+            <ul className="flex flex-wrap gap-2">
               {skills.map((skill) => (
                 <li
                   key={skill}
-                  className="rounded-lg bg-paper-2 px-2.5 py-1 text-xs capitalize text-graphite"
+                  className="rounded-full bg-paper-2 px-3 py-1 text-sm text-graphite"
                 >
-                  {skill.replace(/-/g, " ")}
+                  {formatSlug(skill)}
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-xs leading-relaxed text-muted">
+            <p className="mt-4 text-sm leading-relaxed text-muted">
               Each skill is scored separately and lands on your Skill Passport with the evidence
               behind it — not as a single overall percentage.
             </p>
           </section>
 
           {/* Tools */}
-          <section className="rounded-lg border border-line bg-paper p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
-              <Wrench size={15} className="text-ink" aria-hidden />
+          <section className="hb-card p-6 sm:p-8">
+            <h2 className="mb-4 flex items-center gap-2.5 text-xl font-semibold tracking-[-0.02em] text-ink">
+              <Wrench size={20} strokeWidth={1.8} className="text-link" aria-hidden />
               Tools allowed
             </h2>
-            <ul className="space-y-2">
+            <ul className="space-y-2.5">
               {blueprint.toolsAllowed.map((tool) => (
-                <li key={tool} className="flex items-start gap-2 text-xs text-muted">
-                  <CheckCircle2 size={13} className="mt-0.5 shrink-0 text-green-500" aria-hidden />
+                <li key={tool} className="flex items-start gap-2.5 text-md text-graphite">
+                  <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-moss" aria-hidden />
                   {tool}
                 </li>
               ))}
             </ul>
-            <div className="mt-4 flex items-center gap-1.5 text-xs text-muted">
-              <Clock size={13} aria-hidden />
+            <div className="mt-5 flex items-center gap-1.5 border-t border-line pt-4 text-sm text-muted">
+              <Clock size={15} aria-hidden />
               {blueprint.durationMinutes} minutes total
             </div>
           </section>
@@ -181,57 +198,63 @@ export default async function AssessmentBriefingPage({
 
         {/* AI policy */}
         {blueprint.aiPolicy && (
-          <section className="rounded-lg border border-blue-100 bg-paper-3/50 p-6">
-            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
-              <Bot size={15} className="text-ink" aria-hidden />
+          <section className="rounded-lg bg-accent-soft p-6 sm:p-8">
+            <h2 className="mb-2 flex items-center gap-2.5 text-xl font-semibold tracking-[-0.02em] text-ink">
+              <Bot size={20} strokeWidth={1.8} className="text-link" aria-hidden />
               Using AI
             </h2>
-            <p className="text-sm leading-relaxed text-graphite">{blueprint.aiPolicy}</p>
+            <p className="text-base leading-relaxed text-graphite">{blueprint.aiPolicy}</p>
           </section>
         )}
 
         {/* Scoring */}
-        <section className="rounded-lg border border-line bg-paper p-6">
-          <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-ink">
-            How scoring works
-          </h2>
-          <ul className="space-y-2.5 text-sm text-muted">
-            <li className="flex gap-2">
-              <span className="text-faint">—</span>
+        <section className="hb-card p-6 sm:p-8">
+          <h2 className="mb-4 text-xl font-semibold tracking-[-0.02em] text-ink">How scoring works</h2>
+          <ul className="space-y-3.5 text-md leading-relaxed text-graphite">
+            <li className="flex gap-3">
+              <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+              <span>
               Multiple-choice and numeric answers are graded automatically on the server. Your
               browser never calculates or submits a score.
+              </span>
             </li>
-            <li className="flex gap-2">
-              <span className="text-faint">—</span>
+            <li className="flex gap-3">
+              <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+              <span>
               Written and practical work is graded against a published rubric, criterion by
               criterion.
+              </span>
             </li>
-            <li className="flex gap-2">
-              <span className="text-faint">—</span>
-              You need at least <strong>{policy.minOverall}</strong> overall AND at least{" "}
-              <strong>{policy.minPractical}</strong> on the practical work. A strong knowledge
+            <li className="flex gap-3">
+              <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+              <span>
+              You need at least <strong className="font-semibold text-ink">{policy.minOverall}</strong> overall AND at least{" "}
+              <strong className="font-semibold text-ink">{policy.minPractical}</strong> on the practical work. A strong knowledge
               score cannot compensate for weak practical work.
+              </span>
             </li>
-            <li className="flex gap-2">
-              <span className="text-faint">—</span>
+            <li className="flex gap-3">
+              <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+              <span>
               Every essential skill for this role must reach{" "}
-              <strong>{policy.essentialSkillFloor}</strong>. A single weak essential skill is shown
+              <strong className="font-semibold text-ink">{policy.essentialSkillFloor}</strong>. A single weak essential skill is shown
               plainly rather than averaged away.
+              </span>
             </li>
-            <li className="flex gap-2">
-              <span className="text-faint">—</span>
-              The defense round must reach <strong>{policy.minDefense}</strong>. Work you cannot
+            <li className="flex gap-3">
+              <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+              <span>
+              The defense round must reach <strong className="font-semibold text-ink">{policy.minDefense}</strong>. Work you cannot
               explain does not count as proof.
+              </span>
             </li>
           </ul>
         </section>
 
         {/* Integrity */}
-        <section className="rounded-lg border border-line bg-paper p-6">
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-ink">
-            What we expect
-          </h2>
-          <p className="text-sm leading-relaxed text-muted">
+        <section className="hb-card p-6 sm:p-8">
+          <h2 className="mb-3 text-xl font-semibold tracking-[-0.02em] text-ink">What we expect</h2>
+          <p className="text-md leading-relaxed text-graphite">
             Submit your own work. We record coarse signals — time taken, revision counts, pasted
             volume and tab focus — to spot anomalies. We do not use your webcam, read your screen or
             monitor your keystrokes. No single signal is ever treated as proof of anything; unusual

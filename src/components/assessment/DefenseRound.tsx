@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageSquareQuote, Quote } from "lucide-react";
+import { CheckCircle2, ChevronRight, MessageSquareQuote, Quote } from "lucide-react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/States";
+import { cn } from "@/lib/utils";
 import type { DefenseQuestionView } from "@/lib/services/evaluation-service";
+import { InlineText } from "@/components/ui/InlineText";
 
 /** Impure clock reads live at module scope, outside the render path. */
 function now(): number {
@@ -77,14 +79,17 @@ export function DefenseRound({ attemptId, questions }: Props) {
 
   if (!question) {
     return (
-      <main className="min-h-full bg-paper-2">
-        <div className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-6">
-          <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-ink">Defense round complete</h1>
-          <p className="mt-2 text-sm text-muted">
+      <main id="main-content" className="app-page">
+        <div className="mx-auto max-w-xl py-12 text-center sm:py-20">
+          <span className="animate-focus-in mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-moss-soft text-moss">
+            <CheckCircle2 size={28} strokeWidth={1.8} aria-hidden />
+          </span>
+          <h1 className="display-md animate-rise mt-6 text-ink">Defense round complete</h1>
+          <p className="animate-rise mx-auto mt-3 max-w-md text-base leading-relaxed text-muted">
             Your answers have been scored on the server and folded into your final result.
           </p>
-          <div className="mt-6">
-            <Button onClick={() => router.push(`/assessments/attempt/${attemptId}/result`)}>
+          <div className="animate-rise mt-8">
+            <Button size="lg" onClick={() => router.push(`/assessments/attempt/${attemptId}/result`)}>
               View your result
             </Button>
           </div>
@@ -93,54 +98,61 @@ export function DefenseRound({ attemptId, questions }: Props) {
     );
   }
 
+  const words = answer.trim().split(/\s+/).filter(Boolean).length;
 
   return (
-    <main className="min-h-full bg-paper-2">
-      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        <header className="mb-6">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-ink">
-            Defense round
-          </p>
-          <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-ink">Explain your own work</h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
+    <main id="main-content" className="app-page">
+      <div className="mx-auto max-w-3xl">
+        <header className="animate-rise">
+          <p className="eyebrow">Defense round</p>
+          <h1 className="display-md mt-2.5 text-ink">Explain your own work</h1>
+          <p className="mt-3 text-base leading-relaxed text-muted">
             These questions were generated from what you actually submitted. There is nothing to
             revise — we are checking that you understand and can defend your own decisions.
           </p>
         </header>
 
         {/* Progress */}
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex flex-1 gap-1.5" role="progressbar" aria-valuenow={index + 1} aria-valuemin={1} aria-valuemax={pending.length}>
+        <div className="mt-7 flex items-center gap-4">
+          <div
+            className="flex flex-1 gap-1.5"
+            role="progressbar"
+            aria-label="Defense questions"
+            aria-valuenow={index + 1}
+            aria-valuemin={1}
+            aria-valuemax={pending.length}
+          >
             {pending.map((_, i) => (
               <div
                 key={i}
-                className={`h-1.5 flex-1 rounded-full ${
-                  i < index ? "bg-ink" : i === index ? "bg-ink/40" : "bg-paper-4"
-                }`}
+                className={cn(
+                  "h-1.5 flex-1 rounded-full transition-colors duration-500 ease-apple",
+                  i < index ? "bg-accent" : i === index ? "bg-accent/40" : "bg-paper-4",
+                )}
               />
             ))}
           </div>
-          <span className="shrink-0 text-xs text-muted">
+          <span className="tabular shrink-0 text-sm font-medium text-graphite">
             {index + 1} of {pending.length}
           </span>
         </div>
 
-        <article className="rounded-lg border border-line bg-paper p-6">
+        <article key={question.id} className="hb-tile hb-tile-white hb-swap-in mt-5 p-6 sm:p-9">
           {question.sourceExcerpt && (
-            <blockquote className="mb-5 rounded-md border-l-2 border-line-strong bg-paper-2 p-4">
-              <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
-                <Quote size={11} aria-hidden />
+            <blockquote className="mb-6 rounded-md bg-paper-2 p-5">
+              <p className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted">
+                <Quote size={13} aria-hidden />
                 From your submission
               </p>
-              <p className="font-mono text-xs leading-relaxed text-muted">
-                {question.sourceExcerpt}
-              </p>
+              <p className="font-mono text-sm leading-relaxed text-graphite">{question.sourceExcerpt}</p>
             </blockquote>
           )}
 
-          <h2 className="flex gap-2 text-base font-semibold leading-relaxed text-ink">
-            <MessageSquareQuote size={18} className="mt-0.5 shrink-0 text-ink" aria-hidden />
-            {question.question}
+          <h2 className="flex gap-3 text-lg font-semibold leading-relaxed tracking-[-0.012em] text-ink">
+            <MessageSquareQuote size={22} strokeWidth={1.7} className="mt-1 shrink-0 text-link" aria-hidden />
+            <span>
+              <InlineText>{question.question}</InlineText>
+            </span>
           </h2>
 
           <label htmlFor="defense-answer" className="sr-only">
@@ -149,33 +161,30 @@ export function DefenseRound({ attemptId, questions }: Props) {
           <textarea
             id="defense-answer"
             rows={9}
-            className="mt-5 w-full rounded-md border border-line px-3.5 py-3 text-sm leading-relaxed text-ink placeholder:text-faint focus:border-ink focus:outline-none focus:ring-2 focus:ring-[#0B0B0C]/20"
+            className="hb-input mt-6 leading-relaxed"
             placeholder="Answer in your own words. Reference the specifics of what you did."
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
           />
-          <p className="mt-1.5 text-xs text-faint">
-            {answer.trim().split(/\s+/).filter(Boolean).length} words
-          </p>
 
           {error && (
-            <p role="alert" className="mt-3 text-xs text-rust">
+            <p role="alert" className="mt-3 rounded-md bg-rust-soft px-4 py-3 text-sm text-rust">
               {error}
             </p>
           )}
 
-          <div className="mt-5 flex justify-end">
-            <Button onClick={() => void submit()} disabled={submitting}>
-              {submitting
-                ? "Saving..."
-                : index === pending.length - 1
-                  ? "Submit and finish"
-                  : "Next question"}
+          <div className="mt-5 flex items-center justify-between gap-4">
+            <p className="tabular text-sm text-muted">
+              {words} {words === 1 ? "word" : "words"}
+            </p>
+            <Button size="lg" onClick={() => void submit()} disabled={submitting}>
+              {submitting ? "Saving…" : index === pending.length - 1 ? "Submit and finish" : "Next question"}
+              {!submitting && index !== pending.length - 1 && <ChevronRight size={17} aria-hidden />}
             </Button>
           </div>
         </article>
 
-        <p className="mt-4 text-center text-xs text-faint">
+        <p className="mt-5 text-center text-sm text-muted">
           Answers are scored on the server. You cannot return to a question once submitted.
         </p>
       </div>

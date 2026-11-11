@@ -20,32 +20,30 @@ export function Logo({
     <Link
       href={href}
       aria-label="Human Bridge — home"
-      className={cn("group inline-flex items-center gap-2.5", className)}
+      className={cn("group inline-flex items-center gap-2.5 rounded-lg", className)}
     >
       <span
         className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-[6px] border transition-colors",
-          inverted
-            ? "border-white/20 bg-white text-ink"
-            : "border-ink bg-ink text-paper",
+          "flex h-7 w-7 items-center justify-center rounded-[8px] transition-[transform,background-color,color] duration-500 ease-out-expo group-hover:scale-[1.06] group-active:scale-95",
+          inverted ? "bg-white text-ink" : "bg-ink text-paper",
         )}
         aria-hidden
       >
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
           <path
             d="M3 15.5C3 15.5 3 11.5 6.6 10.4C10.2 9.3 13.6 10.2 16.5 4.5"
             stroke="currentColor"
-            strokeWidth="1.35"
+            strokeWidth="1.5"
             strokeLinecap="round"
           />
-          <circle cx="3" cy="15.5" r="1.45" fill="currentColor" />
-          <circle cx="16.5" cy="4.5" r="1.45" fill="currentColor" />
+          <circle cx="3" cy="15.5" r="1.55" fill="currentColor" />
+          <circle cx="16.5" cy="4.5" r="1.55" fill="currentColor" />
         </svg>
       </span>
       {!compact && (
         <span
           className={cn(
-            "text-[13px] font-semibold uppercase tracking-[0.16em]",
+            "text-md font-semibold tracking-[-0.022em] transition-colors duration-500 ease-apple",
             inverted ? "text-paper" : "text-ink",
           )}
         >
