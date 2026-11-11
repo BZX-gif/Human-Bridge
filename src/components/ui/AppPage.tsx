@@ -16,16 +16,17 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <header className={cn("flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between", className)}>
+    <header
+      className={cn(
+        "animate-rise flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between",
+        className,
+      )}
+    >
       <div className="min-w-0">
-        {eyebrow && <p className="eyebrow mb-3">{eyebrow}</p>}
-        <h1 className="font-display text-[clamp(2rem,4vw,2.9rem)] leading-[1.02] tracking-[-0.02em] text-ink">
-          {title}
-        </h1>
+        {eyebrow && <p className="eyebrow mb-2.5">{eyebrow}</p>}
+        <h1 className="display-md text-ink">{title}</h1>
         {description && (
-          <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-muted sm:text-[13.5px]">
-            {description}
-          </p>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">{description}</p>
         )}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
@@ -45,12 +46,12 @@ export function SectionHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap items-end justify-between gap-3", className)}>
-      <div>
-        <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
-        {description && <p className="mt-1 text-[12.5px] text-muted">{description}</p>}
+    <div className={cn("flex flex-wrap items-baseline justify-between gap-x-5 gap-y-2 sm:flex-nowrap", className)}>
+      <div className="min-w-0">
+        <h2 className="text-xl font-semibold leading-snug tracking-[-0.02em] text-ink">{title}</h2>
+        {description && <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted">{description}</p>}
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
@@ -75,10 +76,10 @@ export function Stat({
           ? "text-rust"
           : "text-ink";
   return (
-    <div className="rounded-lg border border-line bg-paper p-4">
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-faint">{label}</p>
-      <p className={cn("stat-value mt-2.5", accentClass)}>{value}</p>
-      {hint && <p className="mt-1.5 text-[11px] leading-relaxed text-muted">{hint}</p>}
+    <div className="hb-card p-5 sm:p-6">
+      <p className="text-xs font-medium text-muted">{label}</p>
+      <p className={cn("stat-value mt-2", accentClass)}>{value}</p>
+      {hint && <p className="mt-1.5 text-2xs leading-relaxed text-muted">{hint}</p>}
     </div>
   );
 }
@@ -87,19 +88,15 @@ export function Panel({
   children,
   className,
   padded = true,
+  id,
 }: {
   children: ReactNode;
   className?: string;
   padded?: boolean;
+  id?: string;
 }) {
   return (
-    <section
-      className={cn(
-        "rounded-lg border border-line bg-paper",
-        padded && "p-5 sm:p-6",
-        className,
-      )}
-    >
+    <section id={id} className={cn("hb-card", padded && "p-5 sm:p-7", className)}>
       {children}
     </section>
   );

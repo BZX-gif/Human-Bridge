@@ -1,18 +1,21 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
-  ArrowRight,
   Award,
   BookOpen,
   BrainCircuit,
-  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Gauge,
   GraduationCap,
   Layers,
   Sparkles,
+  type LucideIcon,
 } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Panel, SectionHeader } from "@/components/ui/AppPage";
 import { EmptyState } from "@/components/ui/States";
 import {
   ConfidenceBadge,
@@ -21,6 +24,7 @@ import {
 } from "@/components/assessment/EvidenceBadges";
 import { DEFAULT_LEVEL_THRESHOLDS, SKILL_LEVEL_LABELS } from "@/lib/assessment/skill-level";
 import type { SkillDetailView } from "@/lib/services/taxonomy-service";
+import { formatSlug } from "@/lib/utils";
 
 const CAPABILITY_LABELS: Record<string, string> = {
   knowledge: "Knowledge",
@@ -44,157 +48,153 @@ export interface LearningResourceView {
 export function SkillPageView({
   data,
   resources,
+  signedIn = false,
 }: {
   data: SkillDetailView;
   resources: LearningResourceView[];
+  /** Whether a visitor is signed in. Decides what the "no evidence yet" action offers. */
+  signedIn?: boolean;
 }) {
-  const levelProgression = DEFAULT_LEVEL_THRESHOLDS;
+  // Thresholds are stored highest first for resolution; a progression reads upward.
+  const levelProgression = [...DEFAULT_LEVEL_THRESHOLDS].reverse();
 
   return (
-    <main className="min-h-full bg-paper-2">
-      <div className="border-b border-line bg-paper">
-        <div className="mx-auto max-w-[1180px] px-4 pb-8 pt-8 sm:px-7 sm:pt-10 lg:px-10">
-          <Link href="/skills" className="text-xs font-semibold text-ink hover:underline">
-            ← All skills
-          </Link>
-          <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-            <div className="max-w-2xl">
-              <h1 className="font-display text-[clamp(2.1rem,4.5vw,3rem)] leading-[1.02] tracking-[-0.02em] text-ink">{data.name}</h1>
-              <p className="mt-3 leading-relaxed text-graphite">{data.description}</p>
-              {data.whyEmployersWant && (
-                <p className="mt-3 rounded-md bg-paper-2 p-3 text-sm text-graphite">
-                  <strong className="font-semibold text-graphite">Why employers want it:</strong>{" "}
-                  {data.whyEmployersWant}
-                </p>
-              )}
-            </div>
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-paper-2 text-ink">
-              {data.skillType === "ai_fluency" ? (
-                <Sparkles size={26} aria-hidden />
-              ) : (
-                <GraduationCap size={26} aria-hidden />
-              )}
-            </div>
-          </div>
+    <main id="main-content" className="app-page">
+      <Link href="/skills" className="hb-link animate-rise text-sm">
+        <ChevronLeft size={15} strokeWidth={2.2} aria-hidden />
+        All skills
+      </Link>
 
-          <div className="mt-6 flex flex-wrap gap-2">
-            <Badge variant="blue" className="capitalize">
-              {data.skillType.replace("_", " ")}
-            </Badge>
-            <Badge variant="outline" className="capitalize">
-              {data.difficulty}
-            </Badge>
-            <Badge variant="outline" className="capitalize">
-              {data.importance}
-            </Badge>
-            <Badge variant="outline" className="capitalize">
-              market: {data.marketRelevance.replace("_", " ")}
-            </Badge>
-            {data.categoryName && <Badge variant="outline">{data.categoryName}</Badge>}
+      <section className="hb-tile hb-tile-white animate-rise mt-4 p-6 sm:p-9">
+        <div className="flex items-start justify-between gap-5">
+          <div className="min-w-0 max-w-2xl">
+            {data.categoryName && <p className="eyebrow">{data.categoryName}</p>}
+            <h1 className="display-md mt-2 text-ink">{data.name}</h1>
+            <p className="mt-3 text-base leading-relaxed text-graphite">{data.description}</p>
           </div>
+          <div className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-link sm:flex">
+            {data.skillType === "ai_fluency" ? (
+              <Sparkles size={28} strokeWidth={1.6} aria-hidden />
+            ) : (
+              <GraduationCap size={28} strokeWidth={1.6} aria-hidden />
+            )}
+          </div>
+        </div>
 
-          {data.candidate ? (
-            <div className="mt-8 rounded-lg border border-line bg-paper p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl font-bold tabular-nums text-ink">
-                    {data.candidate.score || "—"}
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-ink">Your measured evidence</p>
-                    <p className="text-xs text-muted">
-                      {data.candidate.evidenceCount} evidence · {data.candidate.assessmentCount}{" "}
-                      assessed
-                      {data.candidate.lastAssessedAt
-                        ? ` · last assessed ${new Date(data.candidate.lastAssessedAt).toLocaleDateString()}`
-                        : ""}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <LevelBadge level={SKILL_LEVEL_LABELS[data.candidate.level] ?? "Not Evaluated"} />
-                  <VerificationBadge status={data.candidate.verificationStatus} />
-                  <ConfidenceBadge confidence={data.candidate.confidence} />
+        {data.whyEmployersWant && (
+          <p className="mt-5 max-w-2xl rounded-md bg-paper-2 px-4 py-3.5 text-md leading-relaxed text-graphite">
+            <strong className="font-semibold text-ink">Why employers want it:</strong> {data.whyEmployersWant}
+          </p>
+        )}
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Badge variant="blue">{formatSlug(data.skillType)}</Badge>
+          <Badge variant="outline" className="capitalize">
+            {data.difficulty}
+          </Badge>
+          <Badge variant="outline" className="capitalize">
+            {data.importance}
+          </Badge>
+          <Badge variant="outline" className="capitalize">
+            market: {data.marketRelevance.replace("_", " ")}
+          </Badge>
+        </div>
+
+        {data.candidate ? (
+          <div className="mt-8 rounded-lg bg-paper-2 p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <span className="tabular text-6xl font-semibold leading-none tracking-[-0.03em] text-ink">
+                  {data.candidate.score || "—"}
+                </span>
+                <div>
+                  <p className="text-base font-semibold text-ink">Your measured evidence</p>
+                  <p className="mt-0.5 text-sm text-muted">
+                    {data.candidate.evidenceCount} evidence · {data.candidate.assessmentCount} assessed
+                    {data.candidate.lastAssessedAt
+                      ? ` · last assessed ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(data.candidate.lastAssessedAt))}`
+                      : ""}
+                  </p>
                 </div>
               </div>
-              <p className="mt-3 text-[11px] text-faint">
-                Level comes from score AND evidence kind — practical work and a defense round are
-                required for advanced/expert. A self-reported claim is never a verified level.
-              </p>
+              <div className="flex flex-wrap gap-1.5">
+                <LevelBadge level={SKILL_LEVEL_LABELS[data.candidate.level] ?? "Not Evaluated"} />
+                <VerificationBadge status={data.candidate.verificationStatus} />
+                <ConfidenceBadge confidence={data.candidate.confidence} />
+              </div>
             </div>
-          ) : (
-            <div className="mt-8">
-              <ButtonLink href="/signup">
-                Sign up to build verified evidence for this skill
-              </ButtonLink>
-            </div>
-          )}
-        </div>
-      </div>
+            <p className="mt-4 text-xs leading-relaxed text-muted">
+              Level comes from score AND evidence kind — practical work and a defense round are
+              required for advanced/expert. A self-reported claim is never a verified level.
+            </p>
+          </div>
+        ) : signedIn ? (
+          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <ButtonLink href="/assessments" size="lg">
+              Build verified evidence for this skill
+            </ButtonLink>
+            <p className="text-sm text-muted">No evidence recorded for this skill yet.</p>
+          </div>
+        ) : (
+          <div className="mt-8">
+            <ButtonLink href="/signup" size="lg">
+              Sign up to build verified evidence for this skill
+            </ButtonLink>
+          </div>
+        )}
+      </section>
 
-      <div className="mx-auto max-w-[1180px] space-y-6 px-4 py-7 sm:px-7 lg:px-10">
+      <div className="mt-4 space-y-4 sm:mt-5 lg:space-y-5">
         {/* Tracks this skill belongs to */}
         {data.tracks.length > 0 && (
-          <section className="rounded-lg border border-line bg-paper p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
-              <Layers size={15} className="text-ink" aria-hidden />
-              Career tracks that use this skill
-            </h2>
-            <ul className="flex flex-wrap gap-2">
+          <Panel>
+            <SectionHeader title={<SectionTitle icon={Layers}>Career tracks that use this skill</SectionTitle>} />
+            <ul className="mt-4 flex flex-wrap gap-2.5">
               {data.tracks.map((track) => (
                 <li key={track.id}>
                   <Link
                     href={`/skills/${track.slug}`}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-line bg-paper px-3 py-2 text-sm font-semibold text-graphite transition-colors hover:border-ink/40 hover:text-ink"
+                    className="inline-flex h-10 items-center gap-1.5 rounded-full bg-paper-2 pl-4 pr-3 text-md font-medium text-ink transition-[background-color,color] duration-200 ease-apple hover:bg-accent-soft hover:text-link"
                   >
                     {track.name}
-                    <ArrowRight size={13} aria-hidden />
+                    <ChevronRight size={15} strokeWidth={2.2} aria-hidden />
                   </Link>
                 </li>
               ))}
             </ul>
-          </section>
+          </Panel>
         )}
 
         {/* Sub-skills */}
         {data.subSkills.length > 0 && (
-          <section className="rounded-lg border border-line bg-paper p-6">
-            <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
-              <ClipboardList size={15} className="text-ink" aria-hidden />
-              Sub-skills
-            </h2>
-            <p className="mb-5 text-xs text-muted">
-              What this skill decomposes into — each can be assessed separately.
-            </p>
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Panel>
+            <SectionHeader
+              title={<SectionTitle icon={ClipboardList}>Sub-skills</SectionTitle>}
+              description="What this skill decomposes into — each can be assessed separately."
+            />
+            <ul className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {data.subSkills.map((sub) => (
-                <li key={sub.id} className="rounded-lg border border-line bg-paper-2/50 p-4">
-                  <p className="text-sm font-semibold text-ink">{sub.name}</p>
-                  {sub.description && (
-                    <p className="mt-1 text-xs leading-relaxed text-muted">{sub.description}</p>
-                  )}
+                <li key={sub.id} className="rounded-md bg-paper-2 p-5">
+                  <p className="text-base font-semibold text-ink">{sub.name}</p>
+                  {sub.description && <p className="mt-1.5 text-sm leading-relaxed text-muted">{sub.description}</p>}
                 </li>
               ))}
             </ul>
-          </section>
+          </Panel>
         )}
 
         {/* Level progression */}
-        <section className="rounded-lg border border-line bg-paper p-6">
-          <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
-            <Gauge size={15} className="text-ink" aria-hidden />
-            Level progression
-          </h2>
-          <p className="mb-5 text-xs text-muted">
-            Levels are earned with evidence, not courses. Higher levels require practical evidence
-            (and a defense round for expert).
-          </p>
-          <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Panel>
+          <SectionHeader
+            title={<SectionTitle icon={Gauge}>Level progression</SectionTitle>}
+            description="Levels are earned with evidence, not courses. Higher levels require practical evidence (and a defense round for expert)."
+          />
+          <ol className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {levelProgression.map((level) => (
-              <li key={level.level} className="rounded-lg border border-line bg-paper-2/50 p-4">
-                <p className="text-sm font-bold text-ink">{SKILL_LEVEL_LABELS[level.level]}</p>
-                <p className="mt-1 text-xs text-graphite">Score ≥ {level.minScore}</p>
-                <p className="mt-1 text-[11px] text-faint">
+              <li key={level.level} className="rounded-md bg-paper-2 p-5">
+                <p className="text-base font-semibold text-ink">{SKILL_LEVEL_LABELS[level.level]}</p>
+                <p className="tabular mt-1 text-sm font-medium text-link">Score {level.minScore} or higher</p>
+                <p className="mt-2 text-xs leading-relaxed text-muted">
                   {level.requiresEvidence.length === 0
                     ? "Any evaluated evidence"
                     : level.requiresEvidence.length === 1
@@ -204,116 +204,114 @@ export function SkillPageView({
               </li>
             ))}
           </ol>
-        </section>
+        </Panel>
 
         {/* Capability model */}
         {data.capabilities.length > 0 && (
-          <section className="rounded-lg border border-line bg-paper p-6">
-            <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
-              <BrainCircuit size={15} className="text-ink" aria-hidden />
-              How this skill is really measured
-            </h2>
-            <p className="mb-5 text-xs text-muted">
-              Six capability dimensions — knowledge alone never determines job readiness.
-            </p>
-            <ul className="grid gap-3 sm:grid-cols-2">
+          <Panel>
+            <SectionHeader
+              title={<SectionTitle icon={BrainCircuit}>How this skill is really measured</SectionTitle>}
+              description="Six capability dimensions — knowledge alone never determines job readiness."
+            />
+            <ul className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {data.capabilities.map((cap) => (
-                <li key={cap.id} className="rounded-lg border border-line bg-paper-2/50 p-4">
+                <li key={cap.id} className="rounded-md bg-paper-2 p-5">
                   <Badge variant="blue" size="sm">
                     {CAPABILITY_LABELS[cap.dimension] ?? cap.dimension}
                   </Badge>
-                  <p className="mt-2 text-sm font-semibold text-ink">{cap.title}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted">{cap.description}</p>
+                  <p className="mt-3 text-base font-semibold text-ink">{cap.title}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted">{cap.description}</p>
                   {cap.definition && typeof cap.definition.task === "string" && (
-                    <p className="mt-2 rounded-lg bg-paper p-2.5 text-[11px] leading-relaxed text-graphite">
-                      <strong className="font-semibold">Task:</strong> {cap.definition.task}
+                    <p className="mt-3 rounded-sm bg-paper px-3.5 py-3 text-sm leading-relaxed text-graphite shadow-xs">
+                      <strong className="font-semibold text-ink">Task:</strong> {cap.definition.task}
                     </p>
                   )}
                 </li>
               ))}
             </ul>
-          </section>
+          </Panel>
         )}
 
         {/* Learning resources */}
-        <section className="rounded-lg border border-line bg-paper p-6">
-          <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
-            <BookOpen size={15} className="text-ink" aria-hidden />
-            Learning resources
-          </h2>
-          <p className="mb-5 text-xs text-muted">
-            Learning is preparation. It is never evidence of capability.
-          </p>
+        <Panel>
+          <SectionHeader
+            title={<SectionTitle icon={BookOpen}>Learning resources</SectionTitle>}
+            description="Learning is preparation. It is never evidence of capability."
+          />
           {resources.length === 0 ? (
-            <EmptyState
-              title="No curated resources yet"
-              message="This is a placeholder for the learning library. More resources will be added."
-            />
+            <div className="mt-5">
+              <EmptyState
+                title="No curated resources yet"
+                message="This is a placeholder for the learning library. More resources will be added."
+              />
+            </div>
           ) : (
-            <ul className="grid gap-3 sm:grid-cols-2">
+            <ul className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {resources.map((resource) => (
-                <li key={resource.id} className="rounded-lg border border-line bg-paper-2/50 p-4">
-                  <p className="text-sm font-semibold text-ink">{resource.title}</p>
-                  <p className="mt-1 text-xs text-muted">
+                <li key={resource.id} className="rounded-md bg-paper-2 p-5">
+                  <p className="text-base font-semibold text-ink">{resource.title}</p>
+                  <p className="mt-1 text-sm text-muted">
                     {resource.provider ?? "Human Bridge"} · {resource.type ?? "Resource"}
                     {resource.duration ? ` · ${resource.duration}` : ""}
                   </p>
-                  <Badge variant="outline" size="sm" className="mt-2 capitalize">
+                  <Badge variant="outline" size="sm" className="mt-3 capitalize">
                     {resource.level === "not_evaluated" ? "beginner" : resource.level}
                   </Badge>
                 </li>
               ))}
             </ul>
           )}
-        </section>
+        </Panel>
 
         {/* Assessment */}
-        <section className="rounded-lg border border-line bg-paper p-6">
-          <h2 className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-ink">
-            <Award size={15} className="text-ink" aria-hidden />
-            Assessment readiness
-          </h2>
-          <p className="mb-5 text-xs text-muted">
-            {data.assessmentReadiness > 0
-              ? "This skill is attached to at least one assessment blueprint."
-              : "No assessment blueprint is attached yet. The skill can still receive evidence from projects and human verification."}
-          </p>
+        <Panel>
+          <SectionHeader
+            title={<SectionTitle icon={Award}>Assessment readiness</SectionTitle>}
+            description={
+              data.assessmentReadiness > 0
+                ? "This skill is attached to at least one assessment blueprint."
+                : "No assessment blueprint is attached yet. The skill can still receive evidence from projects and human verification."
+            }
+          />
           {data.assessments.length > 0 ? (
-            <ul className="space-y-2">
+            <ul className="mt-5 space-y-2.5">
               {data.assessments.map((assessment) => (
                 <li
                   key={assessment.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-paper-2/50 p-4"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-paper-2 p-5"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-ink">{assessment.title}</p>
-                    <p className="text-xs text-muted">
-                      v{assessment.version} · {assessment.assessmentType.replace("_", " ")} ·{" "}
-                      {assessment.difficulty}
+                    <p className="text-base font-semibold text-ink">{assessment.title}</p>
+                    <p className="mt-0.5 text-sm text-muted">
+                      v{assessment.version} · {formatSlug(assessment.assessmentType)} · {formatSlug(assessment.difficulty)}
                     </p>
                   </div>
-                  <Link
-                    href={`/assessments/${assessment.slug}`}
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink hover:underline"
-                  >
-                    <CheckCircle2 size={14} aria-hidden />
+                  <Link href={`/assessments/${assessment.slug}`} className="hb-link text-md">
                     View assessment
+                    <ChevronRight size={15} strokeWidth={2.2} aria-hidden />
                   </Link>
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-line p-4">
-              <p className="text-sm text-muted">
-                Practice and assessment content for this skill is coming next.
-              </p>
-              <ButtonLink href="/assessments" variant="secondary" size="sm">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-md bg-paper-2 p-5">
+              <p className="text-md text-muted">Practice and assessment content for this skill is coming next.</p>
+              <ButtonLink href="/assessments" variant="secondary" size="sm" className="bg-paper hover:bg-paper-3">
                 Explore current assessments
               </ButtonLink>
             </div>
           )}
-        </section>
+        </Panel>
       </div>
     </main>
+  );
+}
+
+function SectionTitle({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <Icon size={20} strokeWidth={1.8} className="shrink-0 text-link" aria-hidden />
+      {children}
+    </span>
   );
 }

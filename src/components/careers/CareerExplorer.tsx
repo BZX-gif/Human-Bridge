@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
-import { ArrowUpRight, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Search, X } from "lucide-react";
 import type { CareerSummary } from "@/lib/services/career-service";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/States";
@@ -52,36 +52,36 @@ export function CareerExplorer({
 
   return (
     <div>
-      <div className="flex flex-col gap-4 border-y border-line py-5 md:flex-row md:items-center md:justify-between">
-        <label className="relative flex w-full items-center md:max-w-sm">
-          <Search size={15} className="pointer-events-none absolute left-3 text-faint" aria-hidden />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <label className="relative flex w-full items-center lg:max-w-[340px]">
+          <Search size={17} className="pointer-events-none absolute left-4 text-muted" aria-hidden />
           <span className="sr-only">Search careers</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search a role, skill or field"
-            className="hb-input pl-9 pr-9"
+            className="hb-input rounded-full border-transparent pl-11 pr-10 shadow-xs hover:border-line-strong"
             type="search"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="absolute right-2.5 flex h-6 w-6 items-center justify-center rounded text-muted hover:bg-paper-3 hover:text-ink"
+              className="absolute right-2 flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-paper-3 hover:text-ink"
               aria-label="Clear search"
             >
-              <X size={13} aria-hidden />
+              <X size={14} aria-hidden />
             </button>
           )}
         </label>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-          <span className="hidden shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint sm:flex">
-            <SlidersHorizontal size={12} aria-hidden />
-            Field
-          </span>
+        <div
+          className="hb-scroll-x -mx-[22px] flex items-center gap-2 px-[22px] sm:mx-0 sm:px-0"
+          role="group"
+          aria-label="Filter by field"
+        >
           <FilterChip active={track === "all"} onClick={() => setTrack("all")}>
-            All
+            All fields
           </FilterChip>
           {tracks.map(([slug, name]) => (
             <FilterChip key={slug} active={track === slug} onClick={() => setTrack(slug)}>
@@ -91,11 +91,11 @@ export function CareerExplorer({
         </div>
       </div>
 
-      <div className="mt-5 flex items-center justify-between">
-        <p className="text-[11.5px] text-muted">
+      <div className="mt-6 flex items-center justify-between gap-4">
+        <p className="text-xs text-muted" aria-live="polite">
           {filtered.length} of {careers.length} career path{careers.length === 1 ? "" : "s"}
         </p>
-        <p className="hidden text-[11px] text-faint sm:block">
+        <p className="hidden text-xs text-muted sm:block">
           Demand and salary are indicative context, not predictions.
         </p>
       </div>
@@ -120,54 +120,48 @@ export function CareerExplorer({
           />
         </div>
       ) : (
-        <ul className="stagger mt-6 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="stagger mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {filtered.map((career) => {
             const demand = DEMAND[career.demandLevel ?? "medium"] ?? DEMAND.medium;
             const isTarget = targetCareerId === career.id;
             return (
-              <li key={career.id} className="bg-paper">
+              <li key={career.id}>
                 <Link
                   href={`/careers/${career.slug}`}
-                  className="group flex h-full flex-col p-5 transition-colors hover:bg-paper-2 sm:p-6"
+                  className="hb-tile hb-tile-white hb-tile-lift group flex h-full flex-col p-7"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-                      {career.trackName ?? "Career"}
-                    </p>
-                    <ArrowUpRight
-                      size={15}
-                      className="text-faint transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ink"
-                      aria-hidden
-                    />
+                    <p className="pt-2 text-xs font-medium text-muted">{career.trackName ?? "Career"}</p>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-paper-2 text-graphite transition-[background-color,color] duration-500 ease-out-expo group-hover:bg-accent group-hover:text-white">
+                      <ArrowUpRight size={16} aria-hidden />
+                    </span>
                   </div>
-                  <h3 className="mt-3 font-display text-[25px] leading-[1.08] text-ink">
-                    {career.name}
-                  </h3>
-                  <p className="mt-2 flex-1 text-[12.5px] leading-relaxed text-muted">
+                  <h3 className="display-sm mt-4 text-ink">{career.name}</h3>
+                  <p className="mt-2 flex-1 text-md leading-relaxed text-muted">
                     {career.tagline ?? career.description}
                   </p>
 
                   {isTarget && (
-                    <span className="mt-4 inline-flex w-fit items-center rounded-[3px] bg-ink px-2 py-1 text-[10px] font-medium uppercase tracking-[0.1em] text-paper">
+                    <span className="mt-5 inline-flex w-fit items-center rounded-full bg-accent-soft px-2.5 py-1 text-2xs font-medium text-link">
                       Your current goal
                     </span>
                   )}
 
-                  <dl className="mt-5 space-y-1.5 border-t border-line pt-4 text-[11.5px]">
-                    <div className="flex items-center justify-between gap-2">
-                      <dt className="text-faint">Requirements</dt>
-                      <dd className="text-graphite">
+                  <dl className="mt-6 space-y-2 border-t border-line pt-5 text-xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted">Requirements</dt>
+                      <dd className="text-right text-ink">
                         {career.skillCount} skills · {career.essentialCount} essential
                       </dd>
                     </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <dt className="text-faint">Demand signal</dt>
-                      <dd className={demand.className}>{demand.label}</dd>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-muted">Demand signal</dt>
+                      <dd className={cn("text-right font-medium", demand.className)}>{demand.label}</dd>
                     </div>
                     {career.salaryMin !== null && career.salaryMax !== null && (
-                      <div className="flex items-center justify-between gap-2">
-                        <dt className="text-faint">Indicative range</dt>
-                        <dd className="text-graphite">
+                      <div className="flex items-center justify-between gap-3">
+                        <dt className="text-muted">Indicative range</dt>
+                        <dd className="text-right text-ink">
                           {career.salaryMin}–{career.salaryMax} {career.salaryUnit ?? "LPA"}
                         </dd>
                       </div>
@@ -175,8 +169,14 @@ export function CareerExplorer({
                   </dl>
 
                   {signedIn && (
-                    <p className="mt-4 text-[11px] font-medium text-ink">
-                      {isTarget ? "Open your journey" : "See the skills and start a plan"} →
+                    <p className="mt-5 inline-flex items-center gap-0.5 text-sm text-link">
+                      {isTarget ? "Open your journey" : "See the skills and start a plan"}
+                      <ChevronRight
+                        size={14}
+                        strokeWidth={2.2}
+                        className="transition-transform duration-500 ease-out-expo group-hover:translate-x-0.5"
+                        aria-hidden
+                      />
                     </p>
                   )}
                 </Link>
@@ -204,10 +204,8 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "shrink-0 rounded-[4px] border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors",
-        active
-          ? "border-ink bg-ink text-paper"
-          : "border-line bg-paper text-graphite hover:border-line-strong hover:text-ink",
+        "h-9 shrink-0 whitespace-nowrap rounded-full px-4 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-200 ease-apple active:scale-[0.97]",
+        active ? "bg-ink text-paper" : "bg-paper text-graphite shadow-xs hover:text-ink",
       )}
     >
       {children}

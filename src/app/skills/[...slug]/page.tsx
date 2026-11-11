@@ -69,5 +69,5 @@ export default async function SkillsSlugPage({ params }: SlugParams) {
     .from(learningResources)
     .where(eq(learningResources.skillId, skillData!.id))
     .orderBy(learningResources.level);
-  return <SkillPageView data={skillData!} resources={resources} />;
+  return <SkillPageView data={skillData!} resources={resources} signedIn={Boolean(user)} />;
 }

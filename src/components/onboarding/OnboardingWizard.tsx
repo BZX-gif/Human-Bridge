@@ -81,48 +81,52 @@ export function OnboardingWizard({ careers, skills }: Props) {
   };
 
   return (
-    <main className="min-h-[calc(100vh-64px)] bg-paper-2">
-      <div className="mx-auto max-w-[720px] px-5 py-10 sm:px-8 sm:py-14">
-        {/* Progress */}
-        <div className="mb-8">
-          <div className="mb-2 flex justify-between text-xs text-muted">
-            <span>
-              Step {step} of 5
-            </span>
-            <span>{Math.round(((step - 1) / 5) * 100)}%</span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-paper-3">
-            <div
-              className="h-full rounded-full bg-ink transition-all"
-              style={{ width: `${(step / 5) * 100}%` }}
-            />
+    <main id="main-content" className="min-h-[calc(100dvh-52px)] bg-paper-2">
+      <div className="mx-auto max-w-[640px] px-5 py-10 sm:px-8 sm:py-16">
+        {/* Progress: one segment per step, so the label and the bar cannot disagree. */}
+        <div
+          className="mb-7"
+          role="progressbar"
+          aria-label="Setup progress"
+          aria-valuemin={1}
+          aria-valuemax={5}
+          aria-valuenow={step}
+          aria-valuetext={`Step ${step} of 5`}
+        >
+          <p className="mb-3 text-sm font-medium text-muted">Step {step} of 5</p>
+          <div className="flex gap-1.5">
+            {[1, 2, 3, 4, 5].map((index) => (
+              <span key={index} className="h-1 flex-1 overflow-hidden rounded-full bg-paper-4">
+                <span
+                  className="block h-full origin-left rounded-full bg-accent transition-transform duration-700 ease-out-expo"
+                  style={{ transform: `scaleX(${index <= step ? 1 : 0})` }}
+                />
+              </span>
+            ))}
           </div>
         </div>
 
-        <div className="rounded-lg border border-line bg-paper p-6 sm:p-8">
+        <div className="rounded-2xl bg-paper p-6 shadow-md ring-1 ring-black/[0.04] sm:p-9">
+          <div key={step} className="hb-swap-in">
           {step === 1 && (
             <>
-              <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-ink">What are you here to do?</h1>
-              <p className="mt-1.5 text-sm text-muted">
+              <h1 className="display-sm text-ink">What are you here to do?</h1>
+              <p className="mt-2 text-md text-muted">
                 This shapes what we recommend, nothing else.
               </p>
-              <div className="mt-6 space-y-2">
+              <div className="mt-6 space-y-2.5">
                 {GOALS.map((option) => (
                   <button
                     key={option.id}
                     type="button"
                     onClick={() => setGoal(option.id)}
                     aria-pressed={goal === option.id}
-                    className={`block w-full rounded-md border p-4 text-left transition-colors ${
-                      goal === option.id
-                        ? "border-ink bg-paper-2"
-                        : "border-line hover:border-line-strong"
+                    className={`block w-full rounded-md text-left transition-[background-color,box-shadow,transform] duration-200 ease-apple active:scale-[0.99] p-4 ${
+                      goal === option.id ? "bg-accent-soft ring-2 ring-inset ring-accent" : "bg-paper ring-1 ring-inset ring-line-strong hover:bg-paper-2"
                     }`}
                   >
-                    <span className="block text-sm font-semibold text-ink">
-                      {option.label}
-                    </span>
-                    <span className="block text-xs text-muted">{option.description}</span>
+                    <span className="block text-md font-semibold text-ink">{option.label}</span>
+                    <span className="mt-0.5 block text-sm text-muted">{option.description}</span>
                   </button>
                 ))}
               </div>
@@ -131,21 +135,21 @@ export function OnboardingWizard({ careers, skills }: Props) {
 
           {step === 2 && (
             <>
-              <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-ink">Where are you starting from?</h1>
-              <p className="mt-1.5 text-sm text-muted">
+              <h1 className="display-sm text-ink">Where are you starting from?</h1>
+              <p className="mt-2 text-md text-muted">
                 Your background does not gate anything here — evidence does.
               </p>
-              <div className="mt-6 space-y-2">
+              <div className="mt-6 space-y-2.5">
                 {EDUCATION.map((level) => (
                   <button
                     key={level}
                     type="button"
                     onClick={() => setEducation(level)}
                     aria-pressed={education === level}
-                    className={`block w-full rounded-md border p-3.5 text-left text-sm transition-colors ${
+                    className={`block w-full rounded-md text-left transition-[background-color,box-shadow,transform] duration-200 ease-apple active:scale-[0.99] px-4 py-3.5 text-md ${
                       education === level
-                        ? "border-ink bg-paper-2 font-semibold text-ink"
-                        : "border-line text-graphite hover:border-line-strong"
+                        ? "bg-accent-soft ring-2 ring-inset ring-accent font-semibold text-ink"
+                        : "bg-paper ring-1 ring-inset ring-line-strong hover:bg-paper-2 text-graphite"
                     }`}
                   >
                     {level}
@@ -157,9 +161,9 @@ export function OnboardingWizard({ careers, skills }: Props) {
 
           {step === 3 && (
             <>
-              <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-ink">Your experience</h1>
-              <p className="mt-1.5 text-sm text-muted">Optional, but it helps us calibrate.</p>
-              <label htmlFor="years" className="mt-6 block text-xs font-medium text-graphite">
+              <h1 className="display-sm text-ink">Your experience</h1>
+              <p className="mt-2 text-md text-muted">Optional, but it helps us calibrate.</p>
+              <label htmlFor="years" className="hb-label mt-6">
                 Years of work experience
               </label>
               <input
@@ -171,9 +175,9 @@ export function OnboardingWizard({ careers, skills }: Props) {
                 onChange={(e) =>
                   setExperienceYears(Math.max(0, Math.min(60, Number(e.target.value) || 0)))
                 }
-                className="mt-1.5 w-32 rounded-md border border-line px-3 py-2.5 text-sm focus:border-ink focus:outline-none focus:ring-2 focus:ring-[#0B0B0C]/20"
+                className="hb-input w-32"
               />
-              <label htmlFor="summary" className="mt-5 block text-xs font-medium text-graphite">
+              <label htmlFor="summary" className="hb-label mt-5">
                 Briefly, what have you worked on?
               </label>
               <textarea
@@ -181,31 +185,31 @@ export function OnboardingWizard({ careers, skills }: Props) {
                 rows={5}
                 value={experienceSummary}
                 onChange={(e) => setExperienceSummary(e.target.value)}
-                className="mt-1.5 w-full rounded-md border border-line px-3 py-2.5 text-sm focus:border-ink focus:outline-none focus:ring-2 focus:ring-[#0B0B0C]/20"
+                className="hb-input"
               />
             </>
           )}
 
           {step === 4 && (
             <>
-              <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-ink">What can you already do?</h1>
-              <div className="mt-3 flex items-start gap-2.5 rounded-md bg-ochre-soft p-3.5">
-                <Info size={15} className="mt-0.5 shrink-0 text-ochre" aria-hidden />
-                <p className="text-xs leading-relaxed text-ochre">
+              <h1 className="display-sm text-ink">What can you already do?</h1>
+              <div className="mt-4 flex items-start gap-3 rounded-md bg-ochre-soft p-4">
+                <Info size={16} className="mt-0.5 shrink-0 text-ochre" aria-hidden />
+                <p className="text-sm leading-relaxed text-ochre">
                   These are recorded as <strong>self-reported claims only</strong>. They will not
                   produce a score, a level, or a verified badge, and employers see them marked as
                   unverified. To turn a claim into evidence, complete a work simulation.
                 </p>
               </div>
-              <div className="mt-5 max-h-80 space-y-1.5 overflow-y-auto pr-1">
+              <div className="-mr-2 mt-5 max-h-80 space-y-1.5 overflow-y-auto pr-2">
                 {skills.map((skill) => {
                   const claimed = claims[skill.slug];
                   return (
                     <div
                       key={skill.slug}
-                      className="flex flex-wrap items-center gap-2 rounded-md border border-line px-3 py-2"
+                      className="flex flex-wrap items-center gap-1.5 rounded-md bg-paper-2 px-3.5 py-2.5"
                     >
-                      <span className="min-w-[110px] flex-1 text-sm text-graphite">
+                      <span className="min-w-[110px] flex-1 text-sm font-medium text-ink">
                         {skill.name}
                       </span>
                       {CLAIM_LEVELS.map((level) => (
@@ -221,10 +225,10 @@ export function OnboardingWizard({ careers, skills }: Props) {
                               return next;
                             })
                           }
-                          className={`rounded-lg px-2.5 py-1 text-[11px] font-medium capitalize transition-colors ${
+                          className={`h-8 rounded-full px-3.5 text-xs font-medium capitalize transition-[background-color,color,transform] duration-200 ease-apple active:scale-[0.97] ${
                             claimed === level
-                              ? "bg-ink text-paper"
-                              : "bg-paper-3 text-graphite hover:bg-paper-4"
+                              ? "bg-accent text-white"
+                              : "bg-paper text-graphite ring-1 ring-inset ring-line-strong hover:bg-paper-3"
                           }`}
                         >
                           {level}
@@ -239,28 +243,24 @@ export function OnboardingWizard({ careers, skills }: Props) {
 
           {step === 5 && (
             <>
-              <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.2rem)] leading-tight tracking-[-0.015em] text-ink">Pick a target role</h1>
-              <p className="mt-1.5 text-sm text-muted">
+              <h1 className="display-sm text-ink">Pick a target role</h1>
+              <p className="mt-2 text-md text-muted">
                 You can change this any time from the career explorer.
               </p>
-              <div className="mt-6 max-h-96 space-y-2 overflow-y-auto pr-1">
+              <div className="-mr-2 mt-6 max-h-96 space-y-2.5 overflow-y-auto p-0.5 pr-2">
                 {careers.map((career) => (
                   <button
                     key={career.id}
                     type="button"
                     onClick={() => setTargetCareerSlug(career.slug)}
                     aria-pressed={targetCareerSlug === career.slug}
-                    className={`block w-full rounded-md border p-4 text-left transition-colors ${
-                      targetCareerSlug === career.slug
-                        ? "border-ink bg-paper-2"
-                        : "border-line hover:border-line-strong"
+                    className={`block w-full rounded-md text-left transition-[background-color,box-shadow,transform] duration-200 ease-apple active:scale-[0.99] p-4 ${
+                      targetCareerSlug === career.slug ? "bg-accent-soft ring-2 ring-inset ring-accent" : "bg-paper ring-1 ring-inset ring-line-strong hover:bg-paper-2"
                     }`}
                   >
-                    <span className="block text-sm font-semibold text-ink">
-                      {career.name}
-                    </span>
+                    <span className="block text-md font-semibold text-ink">{career.name}</span>
                     {career.tagline && (
-                      <span className="block text-xs text-muted">{career.tagline}</span>
+                      <span className="mt-0.5 block text-sm text-muted">{career.tagline}</span>
                     )}
                   </button>
                 ))}
@@ -268,8 +268,10 @@ export function OnboardingWizard({ careers, skills }: Props) {
             </>
           )}
 
+          </div>
+
           {error && (
-            <p role="alert" className="mt-5 rounded-md border border-rust/20 bg-rust-soft p-3 text-[12px] text-rust">
+            <p role="alert" className="animate-rise mt-5 rounded-md bg-rust-soft px-3.5 py-3 text-sm text-rust">
               {error}
             </p>
           )}
@@ -278,6 +280,7 @@ export function OnboardingWizard({ careers, skills }: Props) {
             {step > 1 && (
               <Button
                 variant="secondary"
+                size="lg"
                 onClick={() => setStep((s) => (s - 1) as Step)}
                 disabled={saving}
               >
@@ -287,6 +290,7 @@ export function OnboardingWizard({ careers, skills }: Props) {
             )}
             <Button
               className="flex-1"
+              size="lg"
               disabled={!canAdvance || saving}
               onClick={() => {
                 if (step < 5) setStep((s) => (s + 1) as Step);

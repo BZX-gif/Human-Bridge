@@ -1,11 +1,12 @@
-/* eslint-disable @next/next/no-page-custom-font -- App Router loads fonts in the root layout by design (there is no _document). The stylesheet is injected asynchronously and never blocks first paint. */
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import "./globals.css";
+import { inter, interExt } from "./fonts";
 import Navigation from "@/components/layout/Navigation";
 import { safeNextPath } from "@/lib/auth/safe-next";
+import { publishRouteVerdict, type RouteVerdict } from "@/lib/auth/route-verdict";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getBlueprint } from "@/lib/services/assessment-service";
 import { getCareerBySlug } from "@/lib/services/career-service";
@@ -34,7 +35,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0b0c",
+  themeColor: "#ffffff",
+  colorScheme: "light",
   width: "device-width",
   initialScale: 1,
 };
@@ -95,10 +97,18 @@ function isIntegerSegment(seg: string): boolean {
  * (`src/proxy.ts`) — server components have no other way to know the current
  * path. All reads are request-deduped with the page below, so the gate adds
  * zero queries.
+ *
+ * Redirects are thrown here. A missing page is RETURNED as "not-found" and
+ * thrown by the `layout.tsx` of the segment concerned (see
+ * `lib/auth/route-verdict`): `notFound()` cannot render anything from the root
+ * layout, which is above the root not-found boundary. Every rule below that
+ * returns "not-found" therefore needs that segment layout; without one the
+ * page's own `notFound()` still shows the 404 page, but with a 200 status.
+ * `tests/route-gate-layouts.test.ts` pins the list of those layouts.
  */
-async function enforceRouteGate(): Promise<void> {
+async function enforceRouteGate(): Promise<RouteVerdict> {
   const raw = (await headers()).get("x-pathname");
-  if (!raw) return; // Proxy didn't run — page-level backstops still apply.
+  if (!raw) return "ok"; // Proxy didn't run — page-level backstops still apply.
   const [path, search = ""] = raw.split("?");
   const pathname = path.length > 1 ? path.replace(/\/+$/, "") : path;
 
@@ -108,7 +118,7 @@ async function enforceRouteGate(): Promise<void> {
       const fallback = user.role === "employer" ? "/employers/dashboard" : "/dashboard";
       redirect(safeNextPath(new URLSearchParams(search).get("next"), fallback));
     }
-    return;
+    return "ok";
   }
 
   // The session resolves here (deduped with Navigation below — zero extra
@@ -118,11 +128,11 @@ async function enforceRouteGate(): Promise<void> {
 
   // URL-pure validity checks for PUBLIC pages: the pages call notFound() for
   // these with no auth precondition, and under loading.tsx that 404 status is
-  // swallowed to 200 — so the layout answers 404 before anything streams.
+  // swallowed to 200 — so the gate rules on them before anything streams.
   const jobSeg = JOB_RE.exec(pathname)?.[1];
-  if (jobSeg !== undefined && !isIntegerSegment(jobSeg)) notFound();
+  if (jobSeg !== undefined && !isIntegerSegment(jobSeg)) return "not-found";
   if (pathname.startsWith("/skills/") && pathname.slice("/skills/".length).includes("/")) {
-    notFound();
+    return "not-found";
   }
   // Existence checks for PUBLIC detail pages. Each mirrors the page's own
   // `notFound()` call exactly (same function, same args, same null/throw
@@ -130,25 +140,25 @@ async function enforceRouteGate(): Promise<void> {
   // are request-memoized with the page and its metadata — zero extra queries.
   if (jobSeg !== undefined) {
     const data = await getJob(Number(jobSeg)).catch(() => null);
-    if (!data) notFound();
+    if (!data) return "not-found";
   }
   const careerSeg = CAREER_RE.exec(pathname)?.[1];
   if (careerSeg !== undefined) {
     const data = await getCareerBySlug(careerSeg).catch(() => null);
-    if (!data) notFound();
+    if (!data) return "not-found";
   }
   const passportSeg = PASSPORT_RE.exec(pathname)?.[1];
   if (passportSeg !== undefined) {
     try {
       await Promise.all([getPublicPassport(passportSeg), getPublicPortfolio(passportSeg)]);
     } catch {
-      notFound();
+      return "not-found";
     }
   }
   const assessmentSeg = ASSESSMENT_RE.exec(pathname)?.[1];
   if (assessmentSeg !== undefined) {
     const blueprint = await getBlueprint(assessmentSeg).catch(() => null);
-    if (!blueprint) notFound();
+    if (!blueprint) return "not-found";
   }
   const skillSeg = SKILL_RE.exec(pathname)?.[1];
   if (skillSeg !== undefined) {
@@ -156,10 +166,10 @@ async function enforceRouteGate(): Promise<void> {
       getCareerTrackBySlug(skillSeg, user?.id).catch(() => null),
       getSkillBySlug(skillSeg, user?.id).catch(() => null),
     ]);
-    if (!trackData && !skillData) notFound();
+    if (!trackData && !skillData) return "not-found";
   }
 
-  if (!isAuthRoute(pathname)) return;
+  if (!isAuthRoute(pathname)) return "ok";
 
   if (!user) redirect(`/login?next=${pathname}`);
 
@@ -174,7 +184,7 @@ async function enforceRouteGate(): Promise<void> {
     try {
       await getBlueprint(workspaceSeg);
     } catch {
-      notFound();
+      return "not-found";
     }
   }
 
@@ -182,17 +192,17 @@ async function enforceRouteGate(): Promise<void> {
     if (user.role !== "employer") redirect("/dashboard");
     // Page order is role → integer → company → ownership; keep it.
     const candSeg = CANDIDATES_RE.exec(pathname)?.[1];
-    if (candSeg !== undefined && !isIntegerSegment(candSeg)) notFound();
+    if (candSeg !== undefined && !isIntegerSegment(candSeg)) return "not-found";
     const company = await getCompanyForUser(user.id);
     if (!company) redirect("/employers");
     if (candSeg !== undefined) {
       try {
         await assertJobOwnership(Number(candSeg), company.id);
       } catch {
-        notFound();
+        return "not-found";
       }
     }
-    return;
+    return "ok";
   }
 
   if (pathname === "/dashboard") {
@@ -201,43 +211,22 @@ async function enforceRouteGate(): Promise<void> {
     // above (→ /login?next=/dashboard, equivalent to the page's /login).
     if (!user.onboardingComplete) redirect("/onboarding");
   }
+  return "ok";
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  await enforceRouteGate();
+  // Published before the first await: segment layouts render alongside this
+  // one and pick the pending verdict up from the request slot.
+  const gate = enforceRouteGate();
+  publishRouteVerdict(gate);
+  await gate;
   const user = await getCurrentUser();
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/*
-          Fonts load asynchronously so a slow or unreachable font CDN can never
-          block first paint. Until they arrive, the system-font fallbacks in
-          globals.css (system-ui / Georgia) render immediately. No-JS clients
-          get the plain blocking stylesheet via <noscript>.
-        */}
-        <link
-          rel="preload"
-          as="style"
-          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap"
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap';l.media='print';l.onload=function(){l.media='all'};document.head.appendChild(l);}catch(e){}})();`,
-          }}
-        />
-        <noscript>
-          <link
-            href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap"
-            rel="stylesheet"
-          />
-        </noscript>
-      </head>
+    <html lang="en" className={`${inter.variable} ${interExt.variable}`} data-scroll-behavior="smooth">
       <body className="bg-paper text-ink antialiased">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-ink focus:px-4 focus:py-2 focus:text-sm focus:text-paper"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-ink focus:px-5 focus:py-2.5 focus:text-sm focus:font-medium focus:text-paper focus:shadow-lg"
         >
           Skip to content
         </a>

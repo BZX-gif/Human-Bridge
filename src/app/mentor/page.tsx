@@ -44,10 +44,10 @@ export default async function MentorPage() {
     return (
       <main id="main-content" className="app-page">
         <p className="eyebrow mb-3">Paper</p>
-        <h1 className="font-display text-[clamp(2rem,4vw,2.9rem)] leading-tight">
+        <h1 className="display-md">
           Paper is unavailable right now.
         </h1>
-        <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-muted">
+        <p className="mt-2 max-w-xl text-md leading-relaxed text-muted">
           Your plan and evidence are unaffected. You can still work from your roadmap and planner.
         </p>
         <div className="mt-6">

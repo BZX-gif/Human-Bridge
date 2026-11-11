@@ -21,7 +21,7 @@ function getAutoColor(value: number): string {
 }
 
 const colorClasses: Record<string, string> = {
-  blue: "bg-ink",
+  blue: "bg-accent",
   green: "bg-moss",
   yellow: "bg-ochre",
   red: "bg-rust",
@@ -65,14 +65,14 @@ export function ProgressBar({
       >
         <div
           className={cn(
-            "h-full rounded-full transition-[width] duration-700 ease-out",
+            "h-full rounded-full transition-[width] duration-[1100ms] ease-out-expo",
             colorClasses[resolvedColor],
           )}
           style={{ width: animate ? `${displayed}%` : `${percentage}%` }}
         />
       </div>
       {showLabel && (
-        <span className="mt-1.5 block text-right text-[11px] tabular-nums text-muted">
+        <span className="mt-1.5 block text-right text-2xs tabular-nums text-muted">
           {Math.round(percentage)}%
         </span>
       )}

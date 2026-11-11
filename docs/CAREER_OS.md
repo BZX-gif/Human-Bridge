@@ -47,6 +47,41 @@ privacy is disabled. Journey milestones are hidden when the journey flag is off.
 
 ## Design system
 
-`src/app/globals.css` defines the HYB tokens: ink/graphite neutrals, paper surfaces, moss/ochre/rust/
-steel accents, 3–12px radii, Inter/Instrument Serif, and motion utilities with a global
-`prefers-reduced-motion` override. App pages use `.app-page`; marketing pages use `.hb-container`.
+`src/app/globals.css` is the single source for tokens and shared classes.
+
+- **Type.** One family: Inter Variable with its optical-size axis, self-hosted from `src/app/fonts`
+  (no third-party font request). Headings use the `display-*` classes; figures use `stat-value` and
+  `tabular`.
+- **Colour.** Cool neutrals (`ink`, `graphite`, `muted`, `line`, `paper`…`paper-4`, `night`), one
+  interactive accent (`accent`, `link`), and three status hues with soft backgrounds (`moss`,
+  `ochre`, `rust`). Text and control colours are chosen to meet WCAG AA on the surfaces they sit on.
+  To make text quieter, pick a quieter token (`text-muted`); do not dim it with `opacity-*`, which
+  takes small text on a tinted surface below 4.5:1. On `paper-3` use `text-muted`, not `text-faint`.
+- **Shape and depth.** Radii run from 4px to 44px (`--radius-xs`…`--radius-4xl`); cards are
+  `hb-card`, large feature surfaces are `hb-tile`. Elevation comes from soft layered shadows, not
+  borders.
+- **Layout.** Signed-in pages use `.app-page` (1200px, or `.app-page-narrow` for a reading column)
+  inside the sidebar shell from `components/layout/Navigation.tsx`. Public pages use
+  `.hb-container`. Page furniture lives in `components/ui/AppPage.tsx` (`PageHeader`,
+  `SectionHeader`, `Panel`, `Stat`).
+- **Motion.** Opacity, transform and filter only, on shared easing tokens. Scroll-linked effects use
+  CSS scroll timelines behind `@supports`, with `components/motion/ScrollMotion.tsx` as the
+  fallback. Everything settles to a still state under `prefers-reduced-motion`. One-shot entrances
+  (`animate-rise`, `animate-fade`, `.stagger`, `hb-swap-in`…) fill `backwards` only, so an element
+  returns to its own styles once it has played. A `forwards` fill would leave it a stacking
+  context, a containing block for fixed children and a backdrop root for good.
+- **Frosted bars.** `hb-glass-bar` blurs what is behind it only up to the nearest backdrop root, so
+  it must not sit inside an element with a lasting `opacity`, `filter` or mask; the page text would
+  show through it unblurred. Where `backdrop-filter` is unsupported the bars are opaque.
+- **Loading.** `components/ui/PageSkeleton.tsx` has one variant per page frame. An index page keeps
+  its `page.tsx` and `loading.tsx` in an `(index)` route group, so the list skeleton is not painted
+  ahead of the detail routes nested beside it.
+- **Labels.** Where a screen holds a slug or enum but not a stored name, format it with
+  `formatSlug` from `lib/utils` (`power-bi` becomes `Power BI`). Assessment content marks column
+  and table names with backticks; render it through `components/ui/InlineText.tsx`.
+- **Not found.** The route gate in `src/app/layout.tsx` never calls `notFound()` itself: thrown from
+  the root layout it has no boundary to land in and the response is an empty document. The gate
+  returns a verdict and the `layout.tsx` of the segment concerned raises the 404 with
+  `answerRouteVerdict()` (`lib/auth/route-verdict.ts`). A gate rule that can answer "not found"
+  needs such a layout, and no `loading.tsx` may sit above it, or the response starts as a 200.
+  `tests/route-gate-layouts.test.ts` checks both.

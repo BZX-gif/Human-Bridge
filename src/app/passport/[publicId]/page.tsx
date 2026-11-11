@@ -13,7 +13,8 @@ import {
 import { getPublicPassport } from "@/lib/services/passport-service";
 import { getPublicPortfolio } from "@/lib/services/portfolio-service";
 import { PassportSkillList } from "@/components/passport/PassportSkillList";
-
+import { Panel, SectionHeader } from "@/components/ui/AppPage";
+import { formatSlug } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -51,209 +52,224 @@ export default async function PublicPassportPage({
   const milestones = portfolio.milestones;
 
   return (
-    <main id="main-content" className="min-h-full bg-paper-2">
-      <section className="border-b border-line bg-paper">
-        <div className="mx-auto w-full max-w-[900px] px-5 py-9 sm:px-8 sm:py-12">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-[3px] border border-line bg-paper-2 px-2 py-1 text-[9.5px] font-medium uppercase tracking-[0.12em] text-graphite">
-              <Globe2 size={10} aria-hidden />
-              Public portfolio
-            </span>
-            <span className="text-[9.5px] text-faint">Shared by the candidate · sections they enabled only</span>
-          </div>
+    <main id="main-content" className="app-page app-page-narrow">
+      <section className="hb-tile hb-tile-white animate-rise p-6 sm:p-10">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="inline-flex h-7 items-center gap-1.5 rounded-full bg-accent-soft px-3 text-xs font-medium text-link">
+            <Globe2 size={13} aria-hidden />
+            Public portfolio
+          </span>
+          <span className="text-xs text-muted">Shared by the candidate · sections they enabled only</span>
+        </div>
 
-          <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start gap-4">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[6px] bg-ink font-display text-[22px] text-paper">
-                {portfolio.profile.initials}
-              </span>
-              <div className="min-w-0">
-                <h1 className="font-display text-[clamp(2rem,4.4vw,2.9rem)] leading-[1.03] tracking-[-0.02em]">
-                  {passport.ownerName}
-                </h1>
-                {portfolio.profile.headline && (
-                  <p className="mt-1.5 max-w-[560px] text-[12.5px] leading-relaxed text-graphite">
-                    {portfolio.profile.headline}
-                  </p>
-                )}
-                <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted">
-                  {passport.targetRole && (
-                    <span className="flex items-center gap-1.5">
-                      <Target size={11} aria-hidden />
-                      Targeting {passport.targetRole}
-                    </span>
-                  )}
-                  {portfolio.profile.location && (
-                    <span className="flex items-center gap-1.5">
-                      <MapPin size={11} aria-hidden />
-                      {portfolio.profile.location}
-                    </span>
-                  )}
-                </div>
-                {portfolio.profile.links.length > 0 && (
-                  <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1.5">
-                    {portfolio.profile.links.map((link) => (
-                      <a
-                        key={link.url}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer me"
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-ink underline decoration-line-strong underline-offset-4"
-                      >
-                        <Link2 size={10} aria-hidden />
-                        {link.label}
-                      </a>
-                    ))}
-                  </div>
-                )}
+        <div className="mt-7 flex items-start gap-4 sm:gap-5">
+          <span className="hb-avatar h-14 w-14 shrink-0 text-xl sm:h-16 sm:w-16">{portfolio.profile.initials}</span>
+          <div className="min-w-0">
+            <h1 className="display-md text-ink">{passport.ownerName}</h1>
+            {portfolio.profile.headline && (
+              <p className="mt-2 max-w-[600px] text-base leading-relaxed text-graphite">
+                {portfolio.profile.headline}
+              </p>
+            )}
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted">
+              {passport.targetRole && (
+                <span className="flex items-center gap-1.5">
+                  <Target size={15} aria-hidden />
+                  Targeting {passport.targetRole}
+                </span>
+              )}
+              {portfolio.profile.location && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin size={15} aria-hidden />
+                  {portfolio.profile.location}
+                </span>
+              )}
+            </div>
+            {portfolio.profile.links.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
+                {portfolio.profile.links.map((link) => (
+                  <a
+                    key={link.url}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer me"
+                    className="hb-link text-sm"
+                  >
+                    <Link2 size={14} aria-hidden />
+                    {link.label}
+                  </a>
+                ))}
               </div>
-            </div>
-
-            <div className="grid shrink-0 grid-cols-3 gap-px overflow-hidden rounded-md border border-line bg-line sm:w-[250px]">
-              {[
-                ["Readiness", String(passport.readiness)],
-                ["Verified", String(verifiedSkills.length)],
-                ["Projects", String(completedProjects.length)],
-              ].map(([label, value]) => (
-                <div key={label} className="bg-paper px-2.5 py-2.5 text-center">
-                  <p className="font-display text-[20px] leading-none tabular text-ink">{value}</p>
-                  <p className="mt-1 text-[8.5px] uppercase tracking-[0.1em] text-faint">{label}</p>
-                </div>
-              ))}
-            </div>
+            )}
           </div>
         </div>
+
+        <dl className="mt-8 grid grid-cols-3 gap-2.5 sm:gap-3">
+          {[
+            ["Readiness", String(passport.readiness)],
+            ["Verified", String(verifiedSkills.length)],
+            ["Projects", String(completedProjects.length)],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-md bg-paper-2 px-4 py-4 sm:px-5">
+              <dt className="text-xs font-medium text-muted">{label}</dt>
+              <dd className="stat-value mt-1.5 text-ink">{value}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
-      <div className="mx-auto w-full max-w-[900px] space-y-7 px-5 py-8 sm:px-8">
+      <div className="mt-4 space-y-4 sm:mt-5 lg:space-y-5">
         {portfolio.profile.about && (
-          <section>
-            <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-faint">Introduction</h2>
-            <p className="mt-2.5 max-w-3xl whitespace-pre-line text-[12.5px] leading-[1.8] text-graphite">
+          <Panel>
+            <SectionHeader title="Introduction" />
+            <p className="mt-3 max-w-3xl whitespace-pre-line text-base leading-relaxed text-graphite">
               {portfolio.profile.about}
             </p>
-          </section>
+          </Panel>
         )}
 
         {passport.skills.length > 0 && (
-          <section>
-            <div className="flex items-end justify-between gap-3">
-              <h2 className="flex items-center gap-2 text-[13px] font-semibold text-ink">
-                <ShieldCheck size={14} aria-hidden />
-                Skills and evidence
-              </h2>
-              <span className="text-[9.5px] uppercase tracking-[0.1em] text-faint">
-                {verifiedSkills.length} verified
-              </span>
-            </div>
-            <p className="mt-1 text-[10.5px] leading-relaxed text-muted">
-              Verified means an assessment or employer review produced the score. Self-reported claims
-              are labelled and never counted as verified.
-            </p>
-            <div className="mt-3">
+          <Panel>
+            <SectionHeader
+              title={
+                <span className="flex items-center gap-2.5">
+                  <ShieldCheck size={20} className="text-moss" aria-hidden />
+                  Skills and evidence
+                </span>
+              }
+              description="Verified means an assessment or employer review produced the score. Self-reported claims are labelled and never counted as verified."
+              action={<span className="tabular text-sm text-muted">{verifiedSkills.length} verified</span>}
+            />
+            <div className="mt-5">
               <PassportSkillList skills={passport.skills} />
             </div>
-          </section>
+          </Panel>
         )}
 
         {completedProjects.length > 0 && (
-          <section>
-            <h2 className="flex items-center gap-2 text-[13px] font-semibold text-ink">
-              <FolderGit2 size={14} aria-hidden />
-              Projects
-            </h2>
-            <ul className="mt-3 space-y-3">
+          <Panel>
+            <SectionHeader
+              title={
+                <span className="flex items-center gap-2.5">
+                  <FolderGit2 size={20} className="text-link" aria-hidden />
+                  Projects
+                </span>
+              }
+            />
+            <ul className="mt-4 space-y-3">
               {completedProjects.map((project) => (
-                <li key={project.id} className="rounded-lg border border-line bg-paper p-4 sm:p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h3 className="font-display text-[21px] leading-tight text-ink">{project.title}</h3>
-                    <div className="flex items-center gap-2">
+                <li key={project.id} className="rounded-md bg-paper-2 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+                    <h3 className="text-lg font-semibold leading-snug tracking-[-0.015em] text-ink">
+                      {project.title}
+                    </h3>
+                    <div className="flex items-center gap-4">
                       {project.projectUrl && (
-                        <a href={project.projectUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10.5px] font-medium text-ink">
-                          <ExternalLink size={10} aria-hidden /> Live
+                        <a
+                          href={project.projectUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hb-link text-sm"
+                        >
+                          <ExternalLink size={14} aria-hidden /> Live
                         </a>
                       )}
                       {project.repositoryUrl && (
-                        <a href={project.repositoryUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10.5px] font-medium text-ink">
-                          <Link2 size={10} aria-hidden /> Code
+                        <a
+                          href={project.repositoryUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hb-link text-sm"
+                        >
+                          <Link2 size={14} aria-hidden /> Code
                         </a>
                       )}
                     </div>
                   </div>
                   {project.description && (
-                    <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted">{project.description}</p>
+                    <p className="mt-2 text-md leading-relaxed text-graphite">{project.description}</p>
                   )}
                   {project.reflection && (
-                    <blockquote className="mt-2.5 border-l-2 border-line-strong pl-3 text-[11px] leading-relaxed text-graphite">
+                    <blockquote className="mt-3 rounded-sm bg-paper px-4 py-3 text-sm leading-relaxed text-graphite shadow-xs">
                       {project.reflection}
                     </blockquote>
                   )}
                   {project.skillSlugs.length > 0 && (
-                    <div className="mt-2.5 flex flex-wrap gap-1">
+                    <div className="mt-3.5 flex flex-wrap gap-1.5">
                       {project.skillSlugs.map((skill) => (
-                        <span key={skill} className="rounded-[3px] bg-paper-3 px-1.5 py-0.5 text-[9.5px] text-graphite">
-                          {skill.replace(/-/g, " ")}
+                        <span key={skill} className="rounded-full bg-paper px-2.5 py-1 text-xs text-graphite shadow-xs">
+                          {formatSlug(skill)}
                         </span>
                       ))}
                     </div>
                   )}
-                  <p className="mt-2.5 text-[9px] text-faint">
+                  <p className="mt-3.5 text-xs leading-relaxed text-muted">
                     Self-attested project work. Completion does not create a verified skill score.
                   </p>
                 </li>
               ))}
             </ul>
-          </section>
+          </Panel>
         )}
 
         {milestones.length > 0 && (
-          <section>
-            <h2 className="flex items-center gap-2 text-[13px] font-semibold text-ink">
-              <CheckCircle2 size={14} aria-hidden />
-              Learning journey
-            </h2>
-            <ul className="mt-2.5 divide-y divide-line">
+          <Panel>
+            <SectionHeader
+              title={
+                <span className="flex items-center gap-2.5">
+                  <CheckCircle2 size={20} className="text-moss" aria-hidden />
+                  Learning journey
+                </span>
+              }
+            />
+            <ul className="mt-3 divide-y divide-line">
               {milestones.map((milestone) => (
-                <li key={milestone.title} className="flex items-center justify-between gap-3 py-2.5">
-                  <span className="flex items-center gap-2 text-[11.5px] text-graphite">
-                    <CheckCircle2 size={11} className="text-moss" aria-hidden />
+                <li key={milestone.title} className="flex items-center justify-between gap-4 py-3">
+                  <span className="flex items-center gap-2.5 text-md text-ink">
+                    <CheckCircle2 size={16} className="shrink-0 text-moss" aria-hidden />
                     {milestone.title}
                   </span>
-                  <span className="shrink-0 text-[9.5px] text-faint">
+                  <span className="tabular shrink-0 text-sm text-muted">
                     {new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric" }).format(new Date(milestone.completedAt))}
                   </span>
                 </li>
               ))}
             </ul>
-          </section>
+          </Panel>
         )}
 
         {passport.assessments.length > 0 && (
-          <section>
-            <h2 className="text-[13px] font-semibold text-ink">Assessment history</h2>
-            <ul className="mt-2.5 divide-y divide-line rounded-lg border border-line bg-paper">
+          <Panel>
+            <SectionHeader title="Assessment history" />
+            <ul className="mt-3 divide-y divide-line">
               {passport.assessments
                 .filter((assessment) => assessment.completedAt)
                 .map((assessment, index) => (
-                  <li key={index} className="flex items-center justify-between gap-3 px-4 py-2.5 text-[11.5px]">
-                    <span className="text-graphite">
-                      {assessment.title} <span className="text-[9.5px] text-faint">v{assessment.version}</span>
+                  <li key={index} className="flex items-center justify-between gap-4 py-3 text-md">
+                    <span className="min-w-0 text-ink">
+                      {assessment.title} <span className="tabular text-xs text-muted">v{assessment.version}</span>
                     </span>
-                    <span className="flex items-center gap-2">
+                    <span className="flex shrink-0 items-center gap-3">
                       {assessment.readinessScore !== null && (
-                        <span className="tabular text-ink">{assessment.readinessScore}</span>
+                        <span className="tabular text-base font-semibold text-ink">{assessment.readinessScore}</span>
                       )}
-                      <span className={assessment.passed ? "text-moss" : "text-muted"}>
-                        {assessment.passed ? "Passed" : assessment.status}
+                      <span
+                        className={
+                          assessment.passed
+                            ? "rounded-full bg-moss-soft px-2.5 py-1 text-xs font-medium text-moss"
+                            : "rounded-full bg-paper-3 px-2.5 py-1 text-xs font-medium text-graphite"
+                        }
+                      >
+                        {assessment.passed ? "Passed" : formatSlug(assessment.status)}
                       </span>
                     </span>
                   </li>
                 ))}
             </ul>
-          </section>
+          </Panel>
         )}
 
-        <p className="rounded-md border border-line bg-paper p-4 text-[10.5px] leading-relaxed text-muted">
+        <p className="px-1 text-xs leading-relaxed text-muted">
           {passport.evidenceDisclaimer} A score is a comparison against a rubric, not a prediction of
           being hired. This page shows only the sections the candidate enabled.
         </p>

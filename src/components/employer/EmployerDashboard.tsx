@@ -3,9 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Briefcase, Plus, Users } from "lucide-react";
+import { Briefcase, ChevronRight, Plus, Users } from "lucide-react";
 import { EmptyState } from "@/components/ui/States";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { PageHeader, Panel, SectionHeader, Stat } from "@/components/ui/AppPage";
+import { cn } from "@/lib/utils";
 import { JobBuilder } from "./JobBuilder";
 
 export interface EmployerJob {
@@ -47,7 +50,7 @@ export function EmployerDashboard({ companyName, jobs, applications }: Props) {
   const active = jobs.filter((j) => j.status === "active");
 
   return (
-    <main className="min-h-screen bg-[#F7F7F3] pt-16">
+    <main id="main-content" className="app-page">
       {building && (
         <JobBuilder
           onClose={() => setBuilding(false)}
@@ -58,140 +61,170 @@ export function EmployerDashboard({ companyName, jobs, applications }: Props) {
         />
       )}
 
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-sm text-slate-500">{companyName}</p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
-              Hiring dashboard
-            </h1>
-          </div>
-          <Button onClick={() => setBuilding(true)}>
+      {/* Anchor targets for the sidebar shortcuts "Post a role" and "Candidates". */}
+      <span id="post" aria-hidden />
+      <PageHeader
+        eyebrow={companyName}
+        title="Hiring dashboard"
+        description="Every candidate is ranked on verified evidence against the requirements you set."
+        actions={
+          <Button size="md" onClick={() => setBuilding(true)}>
             <Plus size={16} aria-hidden />
             Post a job
           </Button>
-        </header>
+        }
+      />
 
-        <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Metric label="Active jobs" value={active.length} />
-          <Metric label="Total jobs" value={jobs.length} />
-          <Metric label="Applications" value={applications.length} />
-          <Metric
-            label="Shortlisted"
-            value={applications.filter((a) => a.status === "shortlisted").length}
-          />
-        </div>
+      <div className="stagger mt-7 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <Stat label="Active jobs" value={active.length} />
+        <Stat label="Total jobs" value={jobs.length} />
+        <Stat label="Applications" value={applications.length} />
+        <Stat label="Shortlisted" value={applications.filter((a) => a.status === "shortlisted").length} />
+      </div>
 
-        <section className="mb-6">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-900">
-            <Briefcase size={15} className="text-[#0B0B0C]" aria-hidden />
-            Your jobs
-          </h2>
+      <section className="app-section" id={applications.length === 0 ? "candidates" : undefined}>
+        <SectionHeader
+          title={
+            <span className="flex items-center gap-2.5">
+              <Briefcase size={20} className="text-link" aria-hidden />
+              Your jobs
+            </span>
+          }
+          action={
+            jobs.length > 0 ? (
+              <span className="tabular text-sm text-muted">
+                {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
+              </span>
+            ) : undefined
+          }
+        />
+        <div className="mt-4">
           {jobs.length === 0 ? (
             <EmptyState
               title="No jobs posted yet"
               message="Create a skill-first job to start matching against verified candidates."
-              action={<Button onClick={() => setBuilding(true)}>Post your first job</Button>}
+              action={
+                <Button size="md" onClick={() => setBuilding(true)}>
+                  Post your first job
+                </Button>
+              }
+              icon={<Briefcase size={20} aria-hidden />}
             />
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-3 sm:space-y-4">
               {jobs.map((job) => (
                 <li key={job.id}>
                   <Link
                     href={`/employers/jobs/${job.id}/candidates`}
-                    className="block rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-slate-300"
+                    className="hb-card hb-card-interactive group block p-5 sm:p-7"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <h3 className="font-bold text-slate-900">{job.title}</h3>
-                        <p className="text-xs text-slate-500">
-                          {job.location} · {job.workType} · posted{" "}
-                          {new Date(job.postedAt).toLocaleDateString()}
+                    <div className="flex flex-wrap items-start justify-between gap-x-5 gap-y-3">
+                      <div className="min-w-0">
+                        <h3 className="text-xl font-semibold leading-snug tracking-[-0.02em] text-ink">
+                          {job.title}
+                        </h3>
+                        <p className="mt-1 text-sm text-muted">
+                          {job.location} · <span className="capitalize">{job.workType}</span> · posted{" "}
+                          {formatDate(job.postedAt)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="inline-flex items-center gap-1.5 text-xs text-slate-600">
-                          <Users size={12} aria-hidden />
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="tabular inline-flex items-center gap-1.5 text-sm font-medium text-graphite">
+                          <Users size={15} className="text-muted" aria-hidden />
                           {job.applicantCount} applicant
                           {job.applicantCount === 1 ? "" : "s"}
                         </span>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                            job.status === "active"
-                              ? "bg-green-50 text-green-700"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
+                        <Badge variant={job.status === "active" ? "green" : "default"} className="capitalize">
                           {job.status}
-                        </span>
+                        </Badge>
+                        <ChevronRight
+                          size={18}
+                          className="text-field transition-transform duration-300 ease-apple group-hover:translate-x-0.5 group-hover:text-ink"
+                          aria-hidden
+                        />
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {job.requiredSkills.map((skill) => (
-                        <span
-                          key={skill.slug}
-                          className={`rounded-lg border px-2 py-1 text-[11px] ${
-                            skill.importance === "essential"
-                              ? "border-[#0B0B0C]/30 bg-[#F2F2ED] text-[#0B0B0C]"
-                              : "border-slate-200 bg-slate-50 text-slate-600"
-                          }`}
-                        >
-                          {skill.name} {skill.requiredScore}+
-                        </span>
-                      ))}
-                    </div>
+                    {job.requiredSkills.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-1.5">
+                        {job.requiredSkills.map((skill) => (
+                          <span
+                            key={skill.slug}
+                            className={cn(
+                              "tabular rounded-full px-2.5 py-1 text-xs",
+                              skill.importance === "essential"
+                                ? "bg-ink font-medium text-paper"
+                                : "bg-paper-2 text-graphite",
+                            )}
+                          >
+                            {skill.name} {skill.requiredScore}+
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </Link>
                 </li>
               ))}
             </ul>
           )}
-        </section>
+        </div>
+      </section>
 
-        {applications.length > 0 && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
-              Recent applications
-            </h2>
-            <ul className="divide-y divide-slate-100">
-              {applications.slice(0, 10).map((a) => (
-                <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{a.candidateName}</p>
-                    <p className="text-xs text-slate-500">
-                      {a.jobTitle} · {new Date(a.appliedAt).toLocaleDateString()}
+      {applications.length > 0 && (
+        <Panel className="app-section" id="candidates">
+          <SectionHeader title="Recent applications" />
+          <ul className="mt-3 divide-y divide-line">
+            {applications.slice(0, 10).map((a) => (
+              <li key={a.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3.5">
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <span className="hb-avatar h-10 w-10 text-sm" aria-hidden>
+                    {initials(a.candidateName)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-medium text-ink">{a.candidateName}</p>
+                    <p className="truncate text-sm text-muted">
+                      {a.jobTitle} · {formatDate(a.appliedAt)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {a.matchScore !== null && (
-                      <span className="text-sm font-bold tabular-nums text-slate-900">
-                        {a.matchScore}%
-                      </span>
-                    )}
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
-                      {a.status}
-                    </span>
-                    <Link
-                      href={`/employers/jobs/${a.jobId}/candidates`}
-                      className="text-xs font-semibold text-[#0B0B0C] hover:underline"
-                    >
-                      Review
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-      </div>
+                </div>
+                <div className="flex items-center gap-3.5">
+                  {a.matchScore !== null && (
+                    <span className="tabular text-lg font-semibold text-ink">{a.matchScore}%</span>
+                  )}
+                  <Badge className="capitalize">{a.status}</Badge>
+                  <Link href={`/employers/jobs/${a.jobId}/candidates`} className="hb-link text-sm">
+                    Review
+                    <ChevronRight size={14} strokeWidth={2.2} aria-hidden />
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
     </main>
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{value}</p>
-    </div>
-  );
+/**
+ * Fixed locale and time zone: the server render and the browser must produce
+ * the same text, whatever the viewer's own locale is.
+ */
+const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+function formatDate(iso: string | Date): string {
+  return DATE_FORMAT.format(new Date(iso));
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 }

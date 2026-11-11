@@ -14,10 +14,12 @@ export function SelectCareerButton({
   careerId,
   careerName,
   fullWidth = false,
+  size = "md",
 }: {
   careerId: number;
   careerName: string;
   fullWidth?: boolean;
+  size?: "md" | "lg";
 }) {
   const router = useRouter();
   const [state, setState] = useState<"idle" | "saving" | "done">("idle");
@@ -45,7 +47,7 @@ export function SelectCareerButton({
       <Button
         onClick={() => void select()}
         disabled={state !== "idle"}
-        size="md"
+        size={size}
         className={fullWidth ? "w-full" : undefined}
       >
         {state === "done" ? (
@@ -63,7 +65,7 @@ export function SelectCareerButton({
         {state === "idle" && <ArrowRight size={15} aria-hidden />}
       </Button>
       {error && (
-        <p role="alert" className="mt-2 text-[11.5px] leading-relaxed text-rust">
+        <p role="alert" className="mt-2 text-xs leading-relaxed text-rust">
           {error}
         </p>
       )}

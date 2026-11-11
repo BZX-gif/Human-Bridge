@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
-  ArrowUpRight,
+  ArrowRight,
   Briefcase,
   CalendarDays,
   ChevronDown,
@@ -125,13 +125,10 @@ export default function Navigation({
 
   if (isFocus) {
     return (
-      <div className="min-h-screen bg-paper">
-        <header className="flex h-16 items-center justify-between border-b border-line px-5 sm:px-8">
+      <div className="min-h-dvh bg-paper">
+        <header className="hb-glass-bar sticky top-0 z-40 flex h-[52px] items-center justify-between px-5 sm:px-8">
           <Logo />
-          <Link
-            href="/"
-            className="text-xs font-medium text-muted transition-colors hover:text-ink"
-          >
+          <Link href="/" className="hb-link text-xs">
             Back to home
           </Link>
         </header>
@@ -145,6 +142,75 @@ export default function Navigation({
   }
 
   return <PublicShell user={user} pathname={pathname}>{children}</PublicShell>;
+}
+
+/** Vertical centre of the public header, in px: where it samples what is beneath it. */
+const HEADER_PROBE = 26;
+
+/**
+ * Public routes whose first section is dark and runs up underneath the header.
+ * Listing them lets the server render the bar in its dark state, so it never
+ * flashes light before the first measurement. Everything else is measured.
+ */
+const DARK_TOP_ROUTES = new Set(["/employers"]);
+
+/**
+ * What the fixed header needs to know about the page under it:
+ *  - `scrolled`  the page has moved, so the bar gets its hairline;
+ *  - `dark`      a full-bleed dark section (marked `hb-nav-dark`) is beneath
+ *                the bar, so it switches to dark glass with light text.
+ *
+ * One rAF-throttled read per scroll frame, and a re-render only when a value
+ * flips. The zones come from a live collection, so it stays correct as routes
+ * and streamed content mount and unmount, with no re-querying. It re-reads on
+ * every navigation, because a new page can put a different surface under the bar
+ * without the document scrolling or changing height.
+ */
+function useHeaderState(pathname: string): { scrolled: boolean; dark: boolean } {
+  const [state, setState] = useState(() => ({
+    scrolled: false,
+    dark: DARK_TOP_ROUTES.has(pathname),
+  }));
+
+  useEffect(() => {
+    const zones = document.getElementsByClassName("hb-nav-dark");
+    let frame = 0;
+
+    const read = () => {
+      frame = 0;
+      const scrolled = window.scrollY > 8;
+      let dark = false;
+      for (let index = 0; index < zones.length; index++) {
+        const rect = zones[index].getBoundingClientRect();
+        if (rect.top <= HEADER_PROBE && rect.bottom > HEADER_PROBE) {
+          dark = true;
+          break;
+        }
+      }
+      setState((previous) =>
+        previous.scrolled === scrolled && previous.dark === dark ? previous : { scrolled, dark },
+      );
+    };
+    const schedule = () => {
+      if (frame === 0) frame = window.requestAnimationFrame(read);
+    };
+
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule, { passive: true });
+    // Content arriving or leaving (navigation, streaming) changes what is under the bar.
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
+    observer?.observe(document.body);
+
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      observer?.disconnect();
+      if (frame !== 0) window.cancelAnimationFrame(frame);
+    };
+  }, [pathname]);
+
+  return state;
 }
 
 /* ── Public site ─────────────────────────────────────────────────────────── */
@@ -161,6 +227,7 @@ function PublicShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { scrolled, dark } = useHeaderState(pathname);
 
   useEffect(() => {
     if (!userOpen) return;
@@ -181,66 +248,86 @@ function PublicShell({
   const workspaceHref = user?.role === "employer" ? "/employers/dashboard" : "/dashboard";
 
   return (
-    <div className="min-h-screen bg-paper">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-paper/90 backdrop-blur-xl">
-        <div className="hb-container flex h-16 items-center justify-between gap-6">
-          <Logo />
+    <div className="min-h-dvh bg-paper">
+      <header
+        data-theme={dark ? "dark" : "light"}
+        className={cn(
+          "group/nav fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color] duration-500 ease-apple",
+          dark ? "hb-glass-dark" : "hb-glass-bar",
+          !scrolled ? "border-transparent" : dark ? "border-white/[0.12]" : "border-black/[0.08]",
+        )}
+      >
+        <div className="hb-container flex h-[52px] items-center justify-between gap-6">
+          <Logo inverted={dark} />
 
-          <nav className="hidden items-center gap-1 lg:flex" aria-label="Main">
-            {publicLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "rounded-md px-3 py-2 text-[13px] font-medium transition-colors",
-                  pathname === link.href
-                    ? "bg-paper-3 text-ink"
-                    : "text-muted hover:bg-paper-2 hover:text-ink",
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav className="hidden items-center gap-8 lg:flex" aria-label="Main">
+            {publicLinks.map((link) => {
+              const active = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "py-1 text-xs transition-colors duration-300 ease-apple",
+                    active
+                      ? "font-medium text-ink group-data-[theme=dark]/nav:text-white"
+                      : "text-ink/70 hover:text-ink group-data-[theme=dark]/nav:text-white/75 group-data-[theme=dark]/nav:hover:text-white",
+                  )}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
 
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="flex items-center gap-1.5">
             {user ? (
               <>
                 <Link
                   href={workspaceHref}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-md bg-ink px-4 text-[13px] font-medium text-paper transition-colors hover:bg-graphite"
+                  className="group inline-flex h-8 items-center gap-1 rounded-full bg-accent px-3.5 text-xs font-medium text-white transition-[background-color,transform] duration-200 ease-apple hover:bg-accent-hover active:scale-[0.97]"
                 >
                   Open workspace
-                  <ArrowUpRight size={14} aria-hidden />
+                  <ArrowRight
+                    size={13}
+                    className="transition-transform duration-500 ease-out-expo group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
                 </Link>
-                <div className="relative" ref={menuRef}>
+                <div className="relative hidden lg:block" ref={menuRef}>
                   <button
                     type="button"
                     onClick={() => setUserOpen((open) => !open)}
                     aria-expanded={userOpen}
                     aria-haspopup="menu"
-                    className="flex h-9 items-center gap-1.5 rounded-md border border-line px-2 text-[13px] font-medium text-graphite transition-colors hover:border-line-strong"
+                    aria-label="Account menu"
+                    className="flex h-8 items-center gap-1 rounded-full pl-1 pr-2 text-graphite transition-colors duration-300 ease-apple hover:bg-ink/[0.06] group-data-[theme=dark]/nav:text-white/80 group-data-[theme=dark]/nav:hover:bg-white/[0.12]"
                   >
-                    <span className="flex h-6 w-6 items-center justify-center rounded-[4px] bg-ink text-[10px] font-semibold text-paper">
+                    <span className="hb-avatar h-6 w-6 text-[10px]">
                       {initials(user.name)}
                     </span>
-                    <ChevronDown size={13} aria-hidden />
+                    <ChevronDown
+                      size={13}
+                      className={cn("transition-transform duration-300 ease-apple", userOpen && "rotate-180")}
+                      aria-hidden
+                    />
                   </button>
                   {userOpen && (
                     <div
                       role="menu"
-                      className="animate-scale-in absolute right-0 top-full mt-2 w-56 rounded-lg border border-line bg-paper p-1.5 shadow-lg"
+                      className="animate-scale-in absolute right-0 top-full mt-2 w-60 origin-top-right rounded-xl bg-paper p-1.5 shadow-xl ring-1 ring-black/5"
                     >
-                      <div className="px-2.5 py-2">
-                        <p className="truncate text-[13px] font-medium text-ink">{user.name}</p>
-                        <p className="truncate text-[11px] text-muted">{user.email}</p>
+                      <div className="px-3 py-2.5">
+                        <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
+                        <p className="truncate text-2xs text-muted">{user.email}</p>
                       </div>
-                      <div className="my-1 h-px bg-line" />
+                      <div className="mx-1.5 my-1 h-px bg-line" />
                       <Link
                         href={workspaceHref}
                         role="menuitem"
                         onClick={() => setUserOpen(false)}
-                        className="block rounded-md px-2.5 py-2 text-[13px] text-graphite hover:bg-paper-2"
+                        className="block rounded-sm px-3 py-2 text-sm text-graphite transition-colors hover:bg-paper-2 hover:text-ink"
                       >
                         Workspace
                       </Link>
@@ -248,11 +335,11 @@ function PublicShell({
                         href="/profile"
                         role="menuitem"
                         onClick={() => setUserOpen(false)}
-                        className="block rounded-md px-2.5 py-2 text-[13px] text-graphite hover:bg-paper-2"
+                        className="block rounded-sm px-3 py-2 text-sm text-graphite transition-colors hover:bg-paper-2 hover:text-ink"
                       >
                         Profile settings
                       </Link>
-                      <SignOutButton className="w-full rounded-md px-2.5 py-2 text-left text-[13px] text-rust hover:bg-rust-soft" />
+                      <SignOutButton className="w-full rounded-sm px-3 py-2 text-left text-sm text-rust transition-colors hover:bg-rust-soft" />
                     </div>
                   )}
                 </div>
@@ -261,88 +348,93 @@ function PublicShell({
               <>
                 <Link
                   href="/login"
-                  className="inline-flex h-9 items-center rounded-md px-3 text-[13px] font-medium text-graphite transition-colors hover:bg-paper-2 hover:text-ink"
+                  className="hidden h-8 items-center rounded-full px-3 text-xs text-ink/70 transition-colors duration-300 ease-apple hover:text-ink group-data-[theme=dark]/nav:text-white/75 group-data-[theme=dark]/nav:hover:text-white sm:inline-flex"
                 >
                   Sign in
                 </Link>
                 <Link
                   href="/signup"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-md bg-ink px-4 text-[13px] font-medium text-paper transition-colors hover:bg-graphite"
+                  className="inline-flex h-8 items-center rounded-full bg-accent px-3.5 text-xs font-medium text-white transition-[background-color,transform] duration-200 ease-apple hover:bg-accent-hover active:scale-[0.97]"
                 >
                   Start free
-                  <ArrowUpRight size={14} aria-hidden />
                 </Link>
               </>
             )}
-          </div>
 
-          <button
-            type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-line text-graphite md:hidden"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Open menu"
-          >
-            <Menu size={18} aria-hidden />
-          </button>
+            <button
+              type="button"
+              className="-mr-1.5 ml-0.5 flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors duration-300 ease-apple hover:bg-ink/[0.06] group-data-[theme=dark]/nav:text-white group-data-[theme=dark]/nav:hover:bg-white/[0.12] lg:hidden"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={menuOpen}
+            >
+              <Menu size={19} strokeWidth={1.8} aria-hidden />
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="pt-16">{children}</div>
+      <div className="hb-public-main pt-[52px]">{children}</div>
       <Footer />
 
       <Dialog.Root open={menuOpen} onOpenChange={setMenuOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="hb-dialog-overlay fixed inset-0 z-[60] bg-ink/40 backdrop-blur-sm" />
-          <Dialog.Content className="hb-dialog-content fixed inset-x-0 top-0 z-[61] max-h-[92dvh] overflow-y-auto rounded-b-2xl border-b border-line bg-paper p-5 shadow-xl sm:hidden">
-            <div className="flex items-center justify-between">
+          <Dialog.Overlay className="hb-dialog-overlay fixed inset-0 z-[60] bg-paper/60 lg:hidden" />
+          <Dialog.Content className="hb-menu-content fixed inset-0 z-[61] flex flex-col bg-paper/95 backdrop-blur-2xl focus:outline-none lg:hidden">
+            <div className="hb-container flex h-[52px] shrink-0 items-center justify-between">
               <Dialog.Title className="sr-only">Navigation</Dialog.Title>
               <Logo />
               <Dialog.Close
-                className="flex h-9 w-9 items-center justify-center rounded-md border border-line text-graphite"
+                className="-mr-1.5 flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors duration-200 hover:bg-ink/[0.06]"
                 aria-label="Close menu"
               >
-                <X size={18} aria-hidden />
+                <X size={19} strokeWidth={1.8} aria-hidden />
               </Dialog.Close>
             </div>
-            <nav className="mt-6 space-y-0.5" aria-label="Mobile">
+            <nav className="hb-container stagger mt-5 flex-1 overflow-y-auto" aria-label="Mobile">
               {publicLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
-                  className="block border-b border-line/70 py-3 text-[15px] font-medium text-graphite last:border-0"
+                  className="block py-2.5 font-display text-[1.75rem] leading-tight text-ink transition-colors duration-200 active:text-muted"
                 >
                   {link.label}
                 </Link>
               ))}
             </nav>
-            <div className="mt-6 flex flex-col gap-2">
-              {user ? (
-                <>
-                  <Link
-                    href={workspaceHref}
-                    className="inline-flex h-11 items-center justify-center rounded-md bg-ink text-sm font-medium text-paper"
-                  >
-                    Open workspace
-                  </Link>
-                  <SignOutButton className="inline-flex h-11 items-center justify-center rounded-md border border-line text-sm font-medium text-rust" />
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/signup"
-                    className="inline-flex h-11 items-center justify-center rounded-md bg-ink text-sm font-medium text-paper"
-                  >
-                    Start free
-                  </Link>
-                  <Link
-                    href="/login"
-                    className="inline-flex h-11 items-center justify-center rounded-md border border-line text-sm font-medium text-graphite"
-                  >
-                    Sign in
-                  </Link>
-                </>
-              )}
+            <div className="hb-container hb-safe-bottom shrink-0">
+              <div className="animate-rise flex flex-col gap-2.5 pb-6 pt-4 [animation-delay:260ms]">
+                {user ? (
+                  <>
+                    <Link
+                      href={workspaceHref}
+                      onClick={() => setMenuOpen(false)}
+                      className="inline-flex h-12 items-center justify-center rounded-full bg-accent text-base font-medium text-white active:bg-accent-press"
+                    >
+                      Open workspace
+                    </Link>
+                    <SignOutButton className="inline-flex h-12 items-center justify-center rounded-full bg-paper-3 text-base font-medium text-rust" />
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/signup"
+                      onClick={() => setMenuOpen(false)}
+                      className="inline-flex h-12 items-center justify-center rounded-full bg-accent text-base font-medium text-white active:bg-accent-press"
+                    >
+                      Start free
+                    </Link>
+                    <Link
+                      href="/login"
+                      onClick={() => setMenuOpen(false)}
+                      className="inline-flex h-12 items-center justify-center rounded-full bg-paper-3 text-base font-medium text-ink"
+                    >
+                      Sign in
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </Dialog.Content>
         </Dialog.Portal>
@@ -369,22 +461,17 @@ function AppShell({
   const workspaceLabel = employer ? "Hiring workspace" : "Career workspace";
 
   return (
-    <div className="min-h-screen bg-paper-2">
+    <div className="min-h-dvh bg-paper-2">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-line bg-paper md:flex">
-        <div className="flex h-16 items-center border-b border-line px-5">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[260px] flex-col border-r border-line bg-[#fbfbfd] md:flex">
+        <div className="flex h-[60px] shrink-0 items-center px-5">
           <Logo />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 pb-6 pt-5">
-          <p className="px-2.5 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-faint">
-            {workspaceLabel}
-          </p>
+        <nav className="flex-1 overflow-y-auto px-3 pb-6 pt-3" aria-label={workspaceLabel}>
           {groups.map((group) => (
-            <div key={group.group} className="mb-5">
-              <p className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-faint">
-                {group.group}
-              </p>
+            <div key={group.group} className="mb-6">
+              <p className="px-3 pb-1.5 text-2xs font-semibold text-faint">{group.group}</p>
               <ul className="space-y-0.5">
                 {group.items.map((item) => {
                   const active = isActive(pathname, item.href);
@@ -394,16 +481,19 @@ function AppShell({
                         href={item.href}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors",
+                          "group flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-[background-color,color] duration-300 ease-apple",
                           active
-                            ? "bg-ink text-paper"
-                            : "text-graphite hover:bg-paper-2 hover:text-ink",
+                            ? "bg-ink/[0.07] font-semibold text-ink"
+                            : "font-medium text-graphite hover:bg-ink/[0.04] hover:text-ink",
                         )}
                       >
                         <item.icon
-                          size={15}
-                          strokeWidth={1.7}
-                          className={active ? "text-paper" : "text-faint group-hover:text-graphite"}
+                          size={17}
+                          strokeWidth={active ? 2 : 1.7}
+                          className={cn(
+                            "shrink-0 transition-colors duration-300 ease-apple",
+                            active ? "text-accent" : "text-faint group-hover:text-graphite",
+                          )}
                           aria-hidden
                         />
                         {item.label}
@@ -414,45 +504,45 @@ function AppShell({
               </ul>
             </div>
           ))}
-        </div>
+        </nav>
 
-        <div className="border-t border-line p-3">
+        <div className="shrink-0 border-t border-line p-3">
           <Link
             href="/profile"
-            className="flex items-center gap-2.5 rounded-md p-2 transition-colors hover:bg-paper-2"
+            className="flex items-center gap-3 rounded-[10px] p-2 transition-colors duration-300 ease-apple hover:bg-ink/[0.04]"
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[5px] bg-ink text-[11px] font-semibold text-paper">
+            <span className="hb-avatar h-9 w-9 text-2xs">
               {initials(user.name)}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12.5px] font-medium text-ink">{user.name}</span>
-              <span className="block truncate text-[11px] text-muted">{user.email}</span>
+              <span className="block truncate text-sm font-semibold text-ink">{user.name}</span>
+              <span className="block truncate text-2xs text-muted">{user.email}</span>
             </span>
           </Link>
-          <SignOutButton className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-[12.5px] font-medium text-muted transition-colors hover:bg-rust-soft hover:text-rust" />
+          <SignOutButton className="mt-1 flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-medium text-muted transition-colors duration-300 ease-apple hover:bg-rust-soft hover:text-rust" />
         </div>
       </aside>
 
       {/* Mobile top bar */}
-      <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-line bg-paper/95 px-4 backdrop-blur-md md:hidden">
+      <header className="hb-glass-bar fixed inset-x-0 top-0 z-40 flex h-[52px] items-center justify-between border-b border-black/[0.06] px-4 md:hidden">
         <Logo />
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-line text-graphite"
+          className="-mr-1.5 flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors duration-200 hover:bg-ink/[0.06]"
           aria-label="Open navigation"
         >
-          <Menu size={18} aria-hidden />
+          <Menu size={19} strokeWidth={1.8} aria-hidden />
         </button>
       </header>
 
-      <div className="pt-14 md:pl-[248px] md:pt-0">
-        <div className="pb-[74px] md:pb-0">{children}</div>
+      <div className="pt-[52px] md:pl-[260px] md:pt-0">
+        <div className="pb-[76px] md:pb-0">{children}</div>
       </div>
 
       {/* Mobile bottom navigation */}
       <nav
-        className="hb-safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 backdrop-blur-md md:hidden"
+        className="hb-glass-bar hb-safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-black/[0.06] md:hidden"
         aria-label="Workspace"
       >
         <ul className="grid grid-cols-5">
@@ -464,11 +554,11 @@ function AppShell({
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex h-[58px] flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
-                    active ? "text-ink" : "text-muted",
+                    "flex h-[58px] flex-col items-center justify-center gap-1 text-3xs font-medium transition-[color,transform] duration-200 ease-apple active:scale-95",
+                    active ? "text-accent" : "text-muted",
                   )}
                 >
-                  <item.icon size={18} strokeWidth={active ? 2 : 1.6} aria-hidden />
+                  <item.icon size={21} strokeWidth={active ? 2 : 1.6} aria-hidden />
                   {item.label}
                 </Link>
               </li>
@@ -478,9 +568,9 @@ function AppShell({
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="flex h-[58px] w-full flex-col items-center justify-center gap-1 text-[10px] font-medium text-muted"
+              className="flex h-[58px] w-full flex-col items-center justify-center gap-1 text-3xs font-medium text-muted transition-transform duration-200 ease-apple active:scale-95"
             >
-              <Menu size={18} strokeWidth={1.6} aria-hidden />
+              <Menu size={21} strokeWidth={1.6} aria-hidden />
               More
             </button>
           </li>
@@ -489,25 +579,21 @@ function AppShell({
 
       <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="hb-dialog-overlay fixed inset-0 z-[60] bg-ink/40 backdrop-blur-sm" />
-          <Dialog.Content className="hb-dialog-content fixed inset-y-0 right-0 z-[61] flex w-[86vw] max-w-[340px] flex-col border-l border-line bg-paper shadow-xl">
-            <div className="flex h-14 items-center justify-between border-b border-line px-4">
-              <Dialog.Title className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
-                {workspaceLabel}
-              </Dialog.Title>
+          <Dialog.Overlay className="hb-dialog-overlay fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" />
+          <Dialog.Content className="hb-drawer-content fixed inset-y-0 right-0 z-[61] flex w-[86vw] max-w-[340px] flex-col rounded-l-2xl bg-paper shadow-2xl focus:outline-none">
+            <div className="flex h-[56px] shrink-0 items-center justify-between px-5">
+              <Dialog.Title className="text-sm font-semibold text-ink">{workspaceLabel}</Dialog.Title>
               <Dialog.Close
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-graphite"
+                className="-mr-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-paper-3 text-graphite transition-[background-color,transform] duration-200 ease-apple hover:bg-paper-4 active:scale-95"
                 aria-label="Close navigation"
               >
-                <X size={17} aria-hidden />
+                <X size={15} strokeWidth={2.2} aria-hidden />
               </Dialog.Close>
             </div>
-            <div className="flex-1 overflow-y-auto px-3 py-4">
+            <div className="flex-1 overflow-y-auto px-3 pb-4 pt-2">
               {groups.map((group) => (
                 <div key={group.group} className="mb-5">
-                  <p className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-faint">
-                    {group.group}
-                  </p>
+                  <p className="px-3 pb-1.5 text-2xs font-semibold text-faint">{group.group}</p>
                   <ul className="space-y-0.5">
                     {group.items.map((item) => {
                       const active = isActive(pathname, item.href);
@@ -518,11 +604,18 @@ function AppShell({
                             aria-current={active ? "page" : undefined}
                             onClick={() => setDrawerOpen(false)}
                             className={cn(
-                              "flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-[13.5px] font-medium",
-                              active ? "bg-ink text-paper" : "text-graphite hover:bg-paper-2",
+                              "flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-md",
+                              active
+                                ? "bg-ink/[0.07] font-semibold text-ink"
+                                : "font-medium text-graphite active:bg-ink/[0.04]",
                             )}
                           >
-                            <item.icon size={16} strokeWidth={1.7} aria-hidden />
+                            <item.icon
+                              size={18}
+                              strokeWidth={active ? 2 : 1.7}
+                              className={active ? "text-accent" : "text-faint"}
+                              aria-hidden
+                            />
                             {item.label}
                           </Link>
                         </li>
@@ -535,24 +628,26 @@ function AppShell({
                 <Link
                   href="/profile"
                   onClick={() => setDrawerOpen(false)}
-                  className="flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-[13.5px] font-medium text-graphite hover:bg-paper-2"
+                  className="flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-md font-medium text-graphite active:bg-ink/[0.04]"
                 >
-                  <UserRound size={16} strokeWidth={1.7} aria-hidden />
+                  <UserRound size={18} strokeWidth={1.7} className="text-faint" aria-hidden />
                   Profile settings
                 </Link>
                 <Link
                   href="/employers"
                   onClick={() => setDrawerOpen(false)}
-                  className="flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-[13.5px] font-medium text-graphite hover:bg-paper-2"
+                  className="flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-md font-medium text-graphite active:bg-ink/[0.04]"
                 >
-                  <Briefcase size={16} strokeWidth={1.7} aria-hidden />
+                  <Briefcase size={18} strokeWidth={1.7} className="text-faint" aria-hidden />
                   For employers
                 </Link>
               </div>
             </div>
-            <div className="border-t border-line p-3">
-              <p className="px-2 pb-2 text-[11px] text-muted">{user.email}</p>
-              <SignOutButton className="flex w-full items-center gap-2 rounded-md px-2.5 py-2.5 text-[13px] font-medium text-rust hover:bg-rust-soft" />
+            <div className="hb-safe-bottom shrink-0 border-t border-line">
+              <div className="p-3">
+                <p className="truncate px-3 pb-1.5 text-2xs text-muted">{user.email}</p>
+                <SignOutButton className="flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-md font-medium text-rust active:bg-rust-soft" />
+              </div>
             </div>
           </Dialog.Content>
         </Dialog.Portal>
@@ -578,8 +673,13 @@ function mobileTabs(employer: boolean): NavItem[] {
 }
 
 function isActive(pathname: string, href: string): boolean {
-  const path = href.split("#")[0];
-  if (path === "/dashboard" || path === "/employers/dashboard") return pathname === path;
+  const [path, hash] = href.split("#");
+  // In-page anchors are shortcuts, not places, so they never mark the current
+  // page. The one exception is "Candidates", which owns the review routes.
+  if (hash) return hash === "candidates" && pathname.startsWith("/employers/jobs/");
+  if (path === "/dashboard" || path === "/employers/dashboard" || path === "/employers") {
+    return pathname === path;
+  }
   return pathname === path || pathname.startsWith(path + "/");
 }
 

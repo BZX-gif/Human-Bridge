@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { Check, Loader2, Sparkles } from "lucide-react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
+import { cn } from "@/lib/utils";
 import type { ExtractedSkill } from "@/lib/services/skill-extraction";
 
 interface Props {
@@ -111,245 +113,223 @@ export function JobBuilder({ onClose, onCreated }: Props) {
     );
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Build a job"
-    >
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-        <div className="sticky top-0 flex items-center justify-between border-b border-slate-100 bg-white p-5">
-          <div>
-            <h2 className="font-bold text-slate-900">Build a job — skills first</h2>
-            {step < 3 && <p className="text-xs text-slate-500">Step {step} of 2</p>}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+    <Modal
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title="Build a job — skills first"
+      description={step < 3 ? `Step ${step} of 2` : undefined}
+      size="lg"
+      footer={
+        step === 1 ? (
+          <Button
+            size="md"
+            onClick={() => void extract()}
+            disabled={busy || title.trim().length < 2 || description.trim().length < 20}
           >
-            <X size={18} aria-hidden />
-          </button>
+            {busy ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Sparkles size={16} aria-hidden />}
+            {busy ? "Extracting…" : "Extract skill requirements"}
+          </Button>
+        ) : step === 2 ? (
+          <>
+            <Button size="md" variant="secondary" onClick={() => setStep(1)} disabled={busy}>
+              Back
+            </Button>
+            <Button size="md" onClick={() => void publish()} disabled={busy || requirements.length === 0}>
+              {busy && <Loader2 size={16} className="animate-spin" aria-hidden />}
+              {busy ? "Publishing…" : "Publish job"}
+            </Button>
+          </>
+        ) : undefined
+      }
+    >
+      {step < 3 && (
+        <div className="mb-5 flex gap-1.5" aria-hidden>
+          <span className="h-1 flex-1 rounded-full bg-accent" />
+          <span
+            className={cn(
+              "h-1 flex-1 rounded-full transition-colors duration-500 ease-apple",
+              step === 2 ? "bg-accent" : "bg-paper-3",
+            )}
+          />
         </div>
+      )}
 
-        <div className="p-5">
-          {step === 1 && (
-            <div className="space-y-4">
-              <Field label="Job title" htmlFor="job-title">
-                <input
-                  id="job-title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Data Analyst"
-                  className={inputClass}
-                />
-              </Field>
+      {step === 1 && (
+        <div className="space-y-4">
+          <Field label="Job title" htmlFor="job-title">
+            <input
+              id="job-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Data Analyst"
+              className="hb-input"
+            />
+          </Field>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Location" htmlFor="job-location">
-                  <input
-                    id="job-location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Bangalore"
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Work type" htmlFor="job-worktype">
-                  <select
-                    id="job-worktype"
-                    value={workType}
-                    onChange={(e) =>
-                      setWorkType(e.target.value as "remote" | "hybrid" | "onsite")
-                    }
-                    className={inputClass}
-                  >
-                    <option value="remote">Remote</option>
-                    <option value="hybrid">Hybrid</option>
-                    <option value="onsite">On-site</option>
-                  </select>
-                </Field>
-              </div>
-
-              <Field label="Job description" htmlFor="job-desc">
-                <textarea
-                  id="job-desc"
-                  rows={9}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe the role and what the person needs to be able to do. We will turn this into structured skill requirements you can edit."
-                  className={inputClass}
-                />
-              </Field>
-
-              {error && (
-                <p role="alert" className="text-xs text-red-600">
-                  {error}
-                </p>
-              )}
-
-              <Button
-                onClick={() => void extract()}
-                disabled={busy || title.trim().length < 2 || description.trim().length < 20}
-                className="w-full"
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Location" htmlFor="job-location">
+              <input
+                id="job-location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Bangalore"
+                className="hb-input"
+              />
+            </Field>
+            <Field label="Work type" htmlFor="job-worktype">
+              <select
+                id="job-worktype"
+                value={workType}
+                onChange={(e) => setWorkType(e.target.value as "remote" | "hybrid" | "onsite")}
+                className="hb-input"
               >
-                <Sparkles size={15} aria-hidden />
-                {busy ? "Extracting..." : "Extract skill requirements"}
-              </Button>
-            </div>
-          )}
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="onsite">On-site</option>
+              </select>
+            </Field>
+          </div>
 
-          {step === 2 && (
-            <div className="space-y-4">
-              {note && (
-                <p className="rounded-xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
-                  {note}
-                </p>
-              )}
+          <Field label="Job description" htmlFor="job-desc">
+            <textarea
+              id="job-desc"
+              rows={9}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe the role and what the person needs to be able to do. We will turn this into structured skill requirements you can edit."
+              className="hb-input leading-relaxed"
+            />
+          </Field>
 
-              {requirements.length === 0 ? (
-                <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                  No skills were recognised in that description. Go back and mention the concrete
-                  tools and abilities the role needs.
-                </p>
-              ) : (
-                <ul className="space-y-3">
-                  {requirements.map((req) => (
-                    <li key={req.slug} className="rounded-xl border border-slate-200 p-4">
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">{req.name}</p>
-                          {req.matchedPhrase && (
-                            <p className="text-[11px] text-slate-400">
-                              matched on &ldquo;{req.matchedPhrase}&rdquo;
-                            </p>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setRequirements((p) => p.filter((r) => r.slug !== req.slug))
-                          }
-                          className="text-xs font-medium text-slate-400 hover:text-red-600"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        <label className="text-xs text-slate-500">
-                          Importance
-                          <select
-                            value={req.importance}
-                            onChange={(e) =>
-                              update(req.slug, { importance: e.target.value as Importance })
-                            }
-                            className={`${inputClass} mt-1`}
-                          >
-                            <option value="essential">Essential</option>
-                            <option value="important">Important</option>
-                            <option value="helpful">Helpful</option>
-                          </select>
-                        </label>
-                        <label className="text-xs text-slate-500">
-                          Minimum level
-                          <select
-                            value={req.requiredLevel}
-                            onChange={(e) => {
-                              const level = e.target.value as Level;
-                              update(req.slug, {
-                                requiredLevel: level,
-                                requiredScore: LEVEL_SCORES[level],
-                              });
-                            }}
-                            className={`${inputClass} mt-1`}
-                          >
-                            <option value="beginner">Beginner</option>
-                            <option value="intermediate">Intermediate</option>
-                            <option value="advanced">Advanced</option>
-                            <option value="expert">Expert</option>
-                          </select>
-                        </label>
-                        <label className="text-xs text-slate-500">
-                          Minimum score
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={req.requiredScore}
-                            onChange={(e) =>
-                              update(req.slug, {
-                                requiredScore: Math.max(
-                                  0,
-                                  Math.min(100, Number(e.target.value) || 0),
-                                ),
-                              })
-                            }
-                            className={`${inputClass} mt-1`}
-                          />
-                        </label>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <label className="flex items-start gap-3 rounded-xl bg-slate-50 p-4 text-sm">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-4 w-4 accent-[#0B0B0C]"
-                  checked={requireHumanReview}
-                  onChange={(e) => setRequireHumanReview(e.target.checked)}
-                />
-                <span>
-                  <span className="block font-medium text-slate-900">
-                    Require human review before shortlisting
-                  </span>
-                  <span className="block text-xs text-slate-500">
-                    Automated evaluations are surfaced to you for confirmation rather than acted on
-                    automatically.
-                  </span>
-                </span>
-              </label>
-
-              {error && (
-                <p role="alert" className="text-xs text-red-600">
-                  {error}
-                </p>
-              )}
-
-              <div className="flex gap-3">
-                <Button variant="secondary" onClick={() => setStep(1)} className="flex-1">
-                  Back
-                </Button>
-                <Button
-                  onClick={() => void publish()}
-                  disabled={busy || requirements.length === 0}
-                  className="flex-1"
-                >
-                  {busy ? "Publishing..." : "Publish job"}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="py-8 text-center">
-              <h3 className="text-xl font-bold text-slate-900">Job published</h3>
-              <p className="mt-2 text-sm text-slate-500">
-                Candidates will be matched against your requirements as they build verified
-                evidence. We will not quote you a candidate count we cannot substantiate.
-              </p>
-            </div>
+          {error && (
+            <p role="alert" className="rounded-md bg-rust-soft px-4 py-3 text-sm text-rust">
+              {error}
+            </p>
           )}
         </div>
-      </div>
-    </div>
+      )}
+
+      {step === 2 && (
+        <div className="hb-swap-in space-y-4">
+          {note && <p className="rounded-md bg-ochre-soft px-4 py-3 text-sm leading-relaxed text-ochre">{note}</p>}
+
+          {requirements.length === 0 ? (
+            <p className="rounded-md bg-paper-2 p-5 text-md leading-relaxed text-graphite">
+              No skills were recognised in that description. Go back and mention the concrete
+              tools and abilities the role needs.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {requirements.map((req) => (
+                <li key={req.slug} className="rounded-md bg-paper-2 p-4 sm:p-5">
+                  <div className="mb-3.5 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-base font-semibold text-ink">{req.name}</p>
+                      {req.matchedPhrase && (
+                        <p className="mt-0.5 text-xs text-muted">matched on &ldquo;{req.matchedPhrase}&rdquo;</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRequirements((p) => p.filter((r) => r.slug !== req.slug))}
+                      className="shrink-0 rounded-full px-2.5 py-1 text-sm font-medium text-muted transition-colors duration-200 hover:bg-rust-soft hover:text-rust"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <label className="text-xs font-medium text-muted">
+                      Importance
+                      <select
+                        value={req.importance}
+                        onChange={(e) => update(req.slug, { importance: e.target.value as Importance })}
+                        className="hb-input mt-1.5"
+                      >
+                        <option value="essential">Essential</option>
+                        <option value="important">Important</option>
+                        <option value="helpful">Helpful</option>
+                      </select>
+                    </label>
+                    <label className="text-xs font-medium text-muted">
+                      Minimum level
+                      <select
+                        value={req.requiredLevel}
+                        onChange={(e) => {
+                          const level = e.target.value as Level;
+                          update(req.slug, {
+                            requiredLevel: level,
+                            requiredScore: LEVEL_SCORES[level],
+                          });
+                        }}
+                        className="hb-input mt-1.5"
+                      >
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                        <option value="expert">Expert</option>
+                      </select>
+                    </label>
+                    <label className="text-xs font-medium text-muted">
+                      Minimum score
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={req.requiredScore}
+                        onChange={(e) =>
+                          update(req.slug, {
+                            requiredScore: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                          })
+                        }
+                        className="hb-input tabular mt-1.5"
+                      />
+                    </label>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <label className="flex cursor-pointer items-center justify-between gap-4 rounded-md bg-paper-2 p-4 sm:p-5">
+            <span>
+              <span className="block text-md font-semibold text-ink">Require human review before shortlisting</span>
+              <span className="mt-0.5 block text-sm leading-relaxed text-muted">
+                Automated evaluations are surfaced to you for confirmation rather than acted on
+                automatically.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              className="hb-switch"
+              checked={requireHumanReview}
+              onChange={(e) => setRequireHumanReview(e.target.checked)}
+            />
+          </label>
+
+          {error && (
+            <p role="alert" className="rounded-md bg-rust-soft px-4 py-3 text-sm text-rust">
+              {error}
+            </p>
+          )}
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="py-8 text-center" role="status">
+          <span className="animate-focus-in mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-moss-soft text-moss">
+            <Check size={28} strokeWidth={2.2} aria-hidden />
+          </span>
+          <h3 className="mt-5 text-2xl font-semibold tracking-[-0.022em] text-ink">Job published</h3>
+          <p className="mx-auto mt-2 max-w-md text-md leading-relaxed text-muted">
+            Candidates will be matched against your requirements as they build verified
+            evidence. We will not quote you a candidate count we cannot substantiate.
+          </p>
+        </div>
+      )}
+    </Modal>
   );
 }
-
-const inputClass =
-  "w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#0B0B0C] focus:outline-none focus:ring-2 focus:ring-[#0B0B0C]/20";
 
 function Field({
   label,
@@ -362,7 +342,7 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-medium text-slate-600">
+      <label htmlFor={htmlFor} className="hb-label">
         {label}
       </label>
       {children}

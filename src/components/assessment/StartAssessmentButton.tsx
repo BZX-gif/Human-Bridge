@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { Button } from "@/components/ui/Button";
 
@@ -28,12 +28,13 @@ export function StartAssessmentButton({ slug }: { slug: string }) {
 
   return (
     <div>
-      <Button onClick={() => void start()} disabled={loading}>
-        {loading ? "Preparing your workspace..." : "Start work simulation"}
-        {!loading && <ArrowRight size={15} aria-hidden />}
+      <Button size="lg" onClick={() => void start()} disabled={loading}>
+        {loading && <Loader2 size={17} className="animate-spin" aria-hidden />}
+        {loading ? "Preparing your workspace…" : "Start work simulation"}
+        {!loading && <ArrowRight size={17} aria-hidden />}
       </Button>
       {error && (
-        <p role="alert" className="mt-2 text-xs text-red-600">
+        <p role="alert" className="mt-3 text-sm text-rust">
           {error}
         </p>
       )}
